@@ -1,0 +1,1 @@
+Hardware and software for simulating various components of a modern power generation and distribution network.
