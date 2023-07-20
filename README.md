@@ -10,6 +10,10 @@ Both of the panel controller boards have been updated to fix the errata discover
 
 They'll go out for manufacturing in the next PCB batch.
 
+Starting to get the protective relaying set up. I need to run some GPS cables for the PTP/IEEE 1588 master clock before I can start bringing everything online.
+
+![image](https://github.com/dslik/powersim/assets/5757591/801d1c65-0a91-4d91-a07e-694834601baf)
+
 ## 2023-07-17
 
 The panel controller boards are starting to come together. I have all of the LEDs and LCDs now responding:
