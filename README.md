@@ -4,6 +4,26 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-08-12
+
+Been working on infrastructure (and software) while waiting for the next revision of the PCBs to arrive.
+
+Here's the current state of the simulator:
+
+![image](https://github.com/dslik/powersim/assets/5757591/aa8759cd-ccf7-462d-91af-00e99b720ef6)
+
+Rack #1 on the far left is the generator section. I'm having to have a 1/4 DIN panel fabricated, since no one seems to make these available for sale.
+
+Rack #2 represents the transmission line from the generation station to the substation.
+
+Rack #3 represents a breaker-and-a-half substation.
+
+Rack #4 represents more transmission lines from the substation.
+
+Rack #5 on the far right will represent a large inductive load. Still need to create the panels for this one.
+
+The four small racks on the top are for annunciator panels and IRIG/IEEE 1588/PTPv2 timing that tie everything together. 
+
 ## 2023-07-20
 
 Both of the panel controller boards have been updated to fix the errata discovered with the previous revisions.
