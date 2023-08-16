@@ -4,6 +4,24 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-08-15
+
+The next revision of the PCBs have arrived
+
+Panel end controller PCB:
+
+![image](https://github.com/dslik/powersim/assets/5757591/8c1fbac7-dbb6-4ea1-ab5b-420603c39a34)
+
+Panel centre controller PCB:
+
+![image](https://github.com/dslik/powersim/assets/5757591/b12e94ab-f0db-4377-bd29-69e822a23317)
+
+Here is the new end controller PCB all soldered up and attached to a front panel, ready for testing:
+
+![image](https://github.com/dslik/powersim/assets/5757591/73eeef43-beab-40d7-a30b-3cd2e281e661)
+
+Next step is to power this up, test the fixes, and see if the font IC is working.
+
 ## 2023-08-12
 
 Been working on infrastructure (and software) while waiting for the next revision of the PCBs to arrive.
