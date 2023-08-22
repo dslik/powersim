@@ -4,6 +4,28 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-08-22
+
+The design for the annunciator panels at the top of the racks to show overall system status and active alarms is now ready for production:
+
+Front panel PCB:
+
+![image](https://github.com/dslik/powersim/assets/5757591/668561f4-d959-44cf-bca3-b16e6dda0a6d)
+
+The yellow colour of the PCB substrate is somewhat of a problem, but illuminating them with a white colour with the yellow subtracted will make it be far less visible. What I am more concerned about is the manufacturer's watermark that is embedded into the FR4.
+
+LED PCB:
+
+![image](https://github.com/dslik/powersim/assets/5757591/0c31afb7-780b-46b9-bf65-76e7f4b9b3ae)
+
+I'm starting out with nine RGB LEDs per indicator. Hopefully this will provide even lighting, and I can use more power than I can with other displays, since there are fewer LEDs. (up to 60/255 vs. a limit of 20/255 per LED colour channel).
+
+If this doesn't work out, I will have to move to 16 LEDs per indicator, which will be a significant increase in cost and complexity.
+
+Next steps is to send these out for manufacturing in the next PCB batch.
+
+I was also able to get a SEL-487E Transformer Protection Relay for the main generator step-up transformer. This unit is pretty large, but I should be able to squeeze it in with just 1U to spare.
+
 ## 2023-08-15
 
 The next revision of the PCBs have arrived
