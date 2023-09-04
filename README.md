@@ -4,6 +4,20 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-09-04
+
+Continuing to work on the penal end controller (1840A). Here's one displaying text on both LCDs, and driving the front panel LEDs. 
+
+![image](https://github.com/dslik/powersim/assets/5757591/323b020a-1462-441e-bc31-fbd78668d20f)
+
+The text is being rendered using the on-board font IC.
+
+This module is being powered by a SEL-3610, which also acts as a serial gateway to allow SNON data exchange via TCP/IP.
+
+![image](https://github.com/dslik/powersim/assets/5757591/55d5eb0f-c5f3-43cf-af5e-aea9adef7ac2)
+
+Next steps for this board are all software, including defining what information should be displayed on each screen, what sensor data should be used, and how it should be rendered.
+
 ## 2023-08-22
 
 The design for the annunciator panels at the top of the racks to show overall system status and active alarms is now ready for production:
