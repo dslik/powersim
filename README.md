@@ -4,9 +4,35 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-09-14
+
+Lots of bits and pieces coming together over the last couple of weeks.
+
+Here's the current state of the simulator:
+
+![image](https://github.com/dslik/powersim/assets/5757591/8e83007b-a742-45e0-a90e-a609191e5ef0)
+
+Some changes since the last update:
+
+* Basic time infrastructure is up and running. 
+* Transformer protection relay is now racked up on the far left.
+* New infrastructure server is now racked up on the far right.
+* Network infrastructure is racked
+* PDUs for protective relaying and support equipment is racked.
+
+Still tons of work to do!
+
+The annunciator PCBs came in, and as I suspected, the front panel is far too yellow. So rev 2 will use a frosted plexiglass layer as a diffusor.
+
+Here's what a prototype looks like using a dark-tinted piece of plexiglass. Not perfect yet, but already looking really good.
+
+![image](https://github.com/dslik/powersim/assets/5757591/f4a669b0-72e5-4089-bce4-fa2e29d45c2a)
+
+Work on the software is also underway, with configurable foreground and background colours and blink patterns specifiable via SNON in accordance to VITA 40.
+
 ## 2023-09-04
 
-Continuing to work on the penal end controller (1840A). Here's one displaying text on both LCDs, and driving the front panel LEDs. 
+Continuing to work on the panel end controller (1840A). Here's one displaying text on both LCDs, and driving the front panel LEDs. 
 
 ![image](https://github.com/dslik/powersim/assets/5757591/323b020a-1462-441e-bc31-fbd78668d20f)
 
