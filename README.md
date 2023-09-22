@@ -4,6 +4,34 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-09-22
+
+The next revision of the annunciator PCBs have gone off for manufacturing. While I'm waiting for those to be delivered, I've been working on the various UI screens for the front panels. I'm basing the UI on the work done on effective console operator HMI design by the ASM Consortium (where ASM stands for Abnormal Situation Management). This is a great resource if you're looking for study-driven research into these types of interfaces, and there are quite a few initially counter-intuitive things to learn from their findings.
+
+Some references for this design language include:
+
+* Effective Console Operator HMI Design, by the ASM Consortium. ISBN 978-1440431647
+* The High Performance HMI Handbook, by Hollifield, Bill et al. ISBN 978-0-9778969-1-2
+
+Here are several mockups for some of the screens:
+
+Busbar voltage and current:
+
+![image](https://github.com/dslik/powersim/assets/5757591/1bd84715-c0c9-4f59-ae7b-addbd6195856) ![image](https://github.com/dslik/powersim/assets/5757591/d43b8150-dedc-45ba-99d3-69f829ededdf)
+
+This shows current bus voltage, normal voltage range, and alarm indications.
+
+Disconnector voltage and current:
+
+![image](https://github.com/dslik/powersim/assets/5757591/6509dfd3-c330-4180-ac09-c29f5b39e826)
+
+Here's what it looks like on an actual LCD:
+
+![image](https://github.com/dslik/powersim/assets/5757591/70d291aa-cf89-4099-94d4-4e3d373cca7d)
+
+
+Next steps are to create a library that renders these screens based on SNON sensor values, including labels, PVs, setpoints, alarms, and alarm thresholds.
+
 ## 2023-09-14
 
 Lots of bits and pieces coming together over the last couple of weeks.
