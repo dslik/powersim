@@ -1,0 +1,3 @@
+[submodule "1840A/1840-9101/pico-utils"]
+	path = 1840A/1840-9101/pico-utils
+	url = https://www.github.com/dslik/pico-utils
