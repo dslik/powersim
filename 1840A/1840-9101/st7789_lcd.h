@@ -31,8 +31,11 @@ extern void st7789_end_pixels(void);
 
 // Colour Management
 extern void st7789_set_bgcolor(uint16_t colour);
+extern void st7789_set_bg_trans(bool transparent);
 extern uint16_t st7789_get_bgcolor(void);
+extern bool st7789_get_bg_trans(void);
 extern void st7789_set_fgcolor(uint16_t colour);
+extern void st7789_set_fg_trans(bool transparent);
 extern uint16_t st7789_get_fgcolor(void);
 extern uint16_t st7789_rgb_to_colour(uint8_t red, uint8_t green, uint8_t blue);
 extern uint8_t st7789_colour_to_red(uint16_t colour);

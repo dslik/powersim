@@ -191,6 +191,16 @@ inline void st7789_set_bgcolor(uint16_t colour)
     bgcolour = colour;
 }
 
+inline void st7789_set_bg_trans(bool transparent)
+{
+    bgtransparent = transparent;
+}
+
+inline bool st7789_get_bg_trans(void)
+{
+    return(bgtransparent);
+}
+
 inline uint16_t st7789_get_bgcolor(void)
 {
     return(bgcolour);
@@ -199,6 +209,11 @@ inline uint16_t st7789_get_bgcolor(void)
 inline void st7789_set_fgcolor(uint16_t colour)
 {
     fgcolour = colour;
+}
+
+inline void st7789_set_fg_trans(bool transparent)
+{
+    fgtransparent = transparent;
 }
 
 inline uint16_t st7789_get_fgcolor()

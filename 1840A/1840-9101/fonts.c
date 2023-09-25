@@ -40,10 +40,17 @@ int16_t st7789_draw_character(char character, uint8_t typeface, uint16_t x_offse
    	    for (int x = 0; x < character_width; ++x) {
 		    for (int y = 0; y < character_height; ++y) {
 				pixel_value = character_data[x * character_height + y];
-        	    st7789_set_pixel_xy(st7789_rgb_to_colour((pixel_value) * (bg_red / 255.0) + (255.0 - pixel_value) * (fg_red / 255.0),
-        	    	                                     (pixel_value) * (bg_green / 255.0) + (255.0 - pixel_value) * (fg_green / 255.0), 
-        	    	                                     (pixel_value) * (bg_blue / 255.0) + (255.0 - pixel_value) * (fg_blue / 255.0)),
-        	    	                                     x + x_offset, y + y_offset, 1);
+				if(st7789_get_bg_trans() && pixel_value == 0xFF)
+				{
+					// Draw nothing
+				}
+				else
+				{
+	        	    st7789_set_pixel_xy(st7789_rgb_to_colour((pixel_value) * (bg_red / 255.0) + (255.0 - pixel_value) * (fg_red / 255.0),
+	        	    	                                     (pixel_value) * (bg_green / 255.0) + (255.0 - pixel_value) * (fg_green / 255.0), 
+	        	    	                                     (pixel_value) * (bg_blue / 255.0) + (255.0 - pixel_value) * (fg_blue / 255.0)),
+	        	    	                                     x + x_offset, y + y_offset, 1);
+				}
         	}
         }
 	}

@@ -132,25 +132,72 @@ int main() {
     st7789_init_lcd(PIN_CS);
     st7789_init_lcd(PIN_CS_2);
 
-    // Clear the LED to a green background
-    st7789_start_pixels(PIN_CS_2);
-    for (int y = 0; y < SCREEN_HEIGHT; ++y) {
-        for (int x = 0; x < SCREEN_WIDTH; ++x) {
-            uint16_t colour = (uint16_t) (0xFF00);
-            st7789_set_pixel(colour);
-        }
-    }
-    st7789_end_pixels();
-
-    // Clear the LED to a red background
+    // Clear the top LCD
     st7789_start_pixels(PIN_CS);
-    st7789_draw_image(image, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
-    st7789_end_pixels();
+    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
 
     // Turn on backlight
     gpio_put(PIN_BL, 1);
 
     printf("LCD initialized...\n");
+
+    // Title area
+    st7789_draw_rect(SCREEN_WIDTH, 50, 0, 190, 2);
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
+    st7789_draw_string_centred("TITLE AREA", B612_BMA_32, 0, SCREEN_WIDTH, 190);
+
+    // Subtitle area
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 160, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 160, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 160, 2);
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
+    st7789_draw_string_centred("L1", B612_BMA_24, (SCREEN_WIDTH / 3) * 0, (SCREEN_WIDTH / 3) * 1, 160);
+    st7789_draw_string_centred("L2", B612_BMA_24, (SCREEN_WIDTH / 3) * 1, (SCREEN_WIDTH / 3) * 2, 160);
+    st7789_draw_string_centred("L3", B612_BMA_24, (SCREEN_WIDTH / 3) * 2, (SCREEN_WIDTH / 3) * 3, 160);
+
+    // Value indicators
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 125, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 125, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 125, 2);
+
+    asm_draw_value_indicator(1, -10, -5, 2, 5, 10, 5);
+    asm_draw_value_indicator(2, -10, -5, -13, 5, 10, -2);
+    asm_draw_value_indicator(3, -10, -5, 18, 5, 10, 0);
+
+
+    // Value area
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 90, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 90, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 90, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 60, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 60, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 60, 2);
+
+
+    asm_draw_flow_value(1, 10.12, "A");
+    asm_draw_flow_value(2, 102.12, "A");
+    asm_draw_flow_value(3, 1020.12, "A");
+
+    // Flow area
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect((SCREEN_WIDTH / 3), 50, (SCREEN_WIDTH / 3) * 0, 0, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 50, (SCREEN_WIDTH / 3) * 1, 0, 2);
+    st7789_draw_rect((SCREEN_WIDTH / 3), 50, (SCREEN_WIDTH / 3) * 2, 0, 2);
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    asm_draw_flow_arrow(1, asm_flow_none);
+    asm_draw_flow_arrow(2, asm_flow_up);
+    asm_draw_flow_arrow(3, asm_flow_down);
+
+    asm_draw_value_alarm(2, asm_alarm_one);
+    asm_draw_value_alarm(3, asm_alarm_two);
+
+    st7789_end_pixels();
+
 
     printf("Displaying characters from font chip...\n");
     gt20l16_init();
@@ -173,9 +220,6 @@ int main() {
     gt20l16_draw_string("World!", 0, 0, 4);
 
     st7789_draw_image(image2, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
-
-    st7789_set_bgcolor(st7789_rgb_to_colour(asm_alarm_two));
-    st7789_draw_triangle(50, 50, 10, 10, 3, 0);
 
     st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
     st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
