@@ -4,6 +4,16 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-09-24
+
+Everything is now being rendered programatically.
+
+Adding the B612 typeface was challenging, since despite it being fixed-width, the width of each character was not a natural number when measured in pixels, and some characters extended into the bounding box of other characters. I was able to adjust things, but there may still be some lingering kerning issues.
+
+![image](https://github.com/dslik/powersim/assets/5757591/0793864d-49f8-45bf-8bbe-17a069dac962)
+
+Next step is to connect all the values up to SNON sensors, and update the display when sensor values are changed.
+
 ## 2023-09-22
 
 The next revision of the annunciator PCBs have gone off for manufacturing. While I'm waiting for those to be delivered, I've been working on the various UI screens for the front panels. I'm basing the UI on the work done on effective console operator HMI design by the ASM Consortium (where ASM stands for Abnormal Situation Management). This is a great resource if you're looking for study-driven research into these types of interfaces, and there are quite a few initially counter-intuitive things to learn from their findings.
@@ -24,11 +34,10 @@ This shows current bus voltage, normal voltage range, and alarm indications.
 Disconnector voltage and current:
 
 ![image](https://github.com/dslik/powersim/assets/5757591/6509dfd3-c330-4180-ac09-c29f5b39e826)
-
+2
 Here's what it looks like on an actual LCD:
 
 ![image](https://github.com/dslik/powersim/assets/5757591/70d291aa-cf89-4099-94d4-4e3d373cca7d)
-
 
 Next steps are to create a library that renders these screens based on SNON sensor values, including labels, PVs, setpoints, alarms, and alarm thresholds.
 
