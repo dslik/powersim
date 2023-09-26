@@ -17,7 +17,6 @@
 // Pico Headers
 #include "pico/stdlib.h"
 #include "hardware/rtc.h"
-#include "hardware/adc.h"
 #include "hardware/i2c.h"
 
 // Local Headers
@@ -37,45 +36,21 @@
 #define DEBUG_WS2812            11
 #define SNPRINTF_BUFFER_SIZE    80
 
-const double conversion_factor = 3.3f / (1 << 12);
-
 // =================================================================================
 // Local Functions
 
-float rp2040_get_temp(void)
-{
-    float reading = adc_read() * conversion_factor;
-    reading = 27 - (reading - 0.706) / 0.001721;
-
-    return(reading);
-}
-
-static bool sensor_update(struct repeating_timer *t)
-{
-    char        snprintf_buffer[SNPRINTF_BUFFER_SIZE];
-
-    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "[\"%4.2f\"]", rp2040_get_temp());
-    entity_name_update("Device Temp", snprintf_buffer);
-}
-
 int main() {
-    struct repeating_timer  sensor_timer;
     datetime_t  t;
     bool        get_time_valid = false;
     char        snprintf_buffer[SNPRINTF_BUFFER_SIZE];
-    uint16_t    pixel_counter = 0;
-    uint16_t    x_counter = 0;
-    uint16_t    y_counter = 0;
     uint16_t    counter = 0;
-    uint16_t    width = 100;
-    uint16_t    height = 10;
     char*       json_output = NULL;
 
     stdio_init_all();
 
     printf("\n\n");
     printf("---------------------------------------------------------------------------------\n");
-    printf("Protonema 1840 Front Panel End Module, Firmware 0.1.0-alpha.2\n");
+    printf("Protonema 1840 Front Panel End Module, Firmware 0.1.0-alpha.3\n");
     printf("CERN-OHL-S v2 (https://github.com/dslik/power-sim/blob/main/license.md)\n");
     printf("---------------------------------------------------------------------------------\n");
     printf("Enable debug LED...\n");
@@ -109,15 +84,8 @@ int main() {
     }
     printf("\n");
 
-    entity_get_uuid("device", snprintf_buffer);
-    printf("Device GUID:   %s\n", snprintf_buffer);
-
-    // ===========================================================================================
-    printf("Initialize ADC...\n");
-
-    adc_init();
-    adc_set_temp_sensor_enabled(true);
-    adc_select_input(4);
+    snon_name_to_eid("device", snprintf_buffer);
+    printf("Device eID:   %s\n", snprintf_buffer);
 
     // ===========================================================================================
     printf("LCD init...\n");
@@ -144,51 +112,27 @@ int main() {
     printf("LCD initialized...\n");
 
     // Title area
-    st7789_draw_rect(SCREEN_WIDTH, 50, 0, 190, 2);
     st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
-    st7789_draw_string_centred("TITLE AREA", B612_BMA_32, 0, SCREEN_WIDTH, 190);
+    st7789_draw_string_centred("=WBA01", B612_BMA_32, 0, SCREEN_WIDTH, 190);
 
     // Subtitle area
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 160, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 160, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 160, 2);
     st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
     st7789_draw_string_centred("L1", B612_BMA_24, (SCREEN_WIDTH / 3) * 0, (SCREEN_WIDTH / 3) * 1, 160);
     st7789_draw_string_centred("L2", B612_BMA_24, (SCREEN_WIDTH / 3) * 1, (SCREEN_WIDTH / 3) * 2, 160);
     st7789_draw_string_centred("L3", B612_BMA_24, (SCREEN_WIDTH / 3) * 2, (SCREEN_WIDTH / 3) * 3, 160);
 
     // Value indicators
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 125, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 125, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 125, 2);
-
     asm_draw_value_indicator(1, -10, -5, 2, 5, 10, 5);
     asm_draw_value_indicator(2, -10, -5, -13, 5, 10, -2);
     asm_draw_value_indicator(3, -10, -5, 18, 5, 10, 0);
 
 
     // Value area
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 90, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 90, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 90, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 0, 60, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 1, 60, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 30, (SCREEN_WIDTH / 3) * 2, 60, 2);
-
-
     asm_draw_flow_value(1, 10.12, "A");
     asm_draw_flow_value(2, 102.12, "A");
     asm_draw_flow_value(3, 1020.12, "A");
 
     // Flow area
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
-    st7789_draw_rect((SCREEN_WIDTH / 3), 50, (SCREEN_WIDTH / 3) * 0, 0, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 50, (SCREEN_WIDTH / 3) * 1, 0, 2);
-    st7789_draw_rect((SCREEN_WIDTH / 3), 50, (SCREEN_WIDTH / 3) * 2, 0, 2);
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
     asm_draw_flow_arrow(1, asm_flow_none);
     asm_draw_flow_arrow(2, asm_flow_up);
     asm_draw_flow_arrow(3, asm_flow_down);
@@ -257,45 +201,40 @@ int main() {
     // ===========================================================================================
     printf("Initializing SNON entities...\n");
 
-    snon_initialize("1840A 1U Rack Display");
+    snon_initialize("1840A Edge Display");
 
     // Add measurands
-    entity_register("Time Measurand", SNON_CLASS_MEASURAND, "{\"meU\":\"s\",\"meT\":\"iso8601\",\"meAq\":\"count\"}");
-    entity_register("Seconds Measurand", SNON_CLASS_MEASURAND, "{\"meU\":\"s\",\"meT\":\"numeric\",\"meAq\":\"count\",\"meUS\":{\"*\":\"s\"},\"meUSx\":{\"*\":\"seconds\"},\"meR\":\"1\",\"meAc\":\"1\"}");
+    snon_register("Time Measurand", SNON_CLASS_MEASURAND, "{\"meU\":\"s\",\"meT\":\"iso8601\",\"meAq\":\"count\"}");
+    snon_register("Seconds Measurand", SNON_CLASS_MEASURAND, "{\"meU\":\"s\",\"meT\":\"numeric\",\"meAq\":\"count\",\"meUS\":{\"*\":\"s\"},\"meUSx\":{\"*\":\"seconds\"},\"meR\":\"1\",\"meAc\":\"1\"}");
 
     // Add sensors
-    entity_register("Device Time Sensor", SNON_CLASS_SENSOR, NULL);
-    entity_add_relationship("Device Time Sensor", SNON_REL_CHILD_OF, "Device");
-    entity_add_relationship("Device Time Sensor", SNON_REL_MEASURAND, "Time Measurand");
+    snon_register("Device Time Sensor", SNON_CLASS_SENSOR, NULL);
+    snon_add_relationship("Device Time Sensor", SNON_REL_CHILD_OF, "Device");
+    snon_add_relationship("Device Time Sensor", SNON_REL_MEASURAND, "Time Measurand");
 
-    entity_register("Device Uptime Sensor", SNON_CLASS_SENSOR, NULL);
-    entity_add_relationship("Device Uptime Sensor", SNON_REL_CHILD_OF, "Device");
-    entity_add_relationship("Device Uptime Sensor", SNON_REL_MEASURAND, "Seconds Measurand");
+    snon_register("Device Uptime Sensor", SNON_CLASS_SENSOR, NULL);
+    snon_add_relationship("Device Uptime Sensor", SNON_REL_CHILD_OF, "Device");
+    snon_add_relationship("Device Uptime Sensor", SNON_REL_MEASURAND, "Seconds Measurand");
 
     // Add series
-    entity_register("Device Time Series", SNON_CLASS_SERIES, NULL);
-    entity_add_relationship("Device Time Series", SNON_REL_MEASURAND, "Time Measurand");
-    entity_add_relationship("Device Time Series", SNON_REL_CHILD_OF, "Device");
-    entity_add_relationship("Device Time Series", SNON_REL_VALUES, "Device Time");
+    snon_register("Device Time Series", SNON_CLASS_SERIES, NULL);
+    snon_add_relationship("Device Time Series", SNON_REL_MEASURAND, "Time Measurand");
+    snon_add_relationship("Device Time Series", SNON_REL_CHILD_OF, "Device Time Sensor");
+    snon_add_relationship("Device Time Series", SNON_REL_VALUES, "Device Time");
 
-    entity_register("Device Uptime Series", SNON_CLASS_SERIES, NULL);
-    entity_add_relationship("Device Uptime Series", SNON_REL_MEASURAND, "Seconds Measurand");
-    entity_add_relationship("Device Uptime Series", SNON_REL_CHILD_OF, "Device");
-    entity_add_relationship("Device Uptime Series", SNON_REL_VALUES, "Device Uptime");
+    snon_register("Device Uptime Series", SNON_CLASS_SERIES, NULL);
+    snon_add_relationship("Device Uptime Series", SNON_REL_MEASURAND, "Seconds Measurand");
+    snon_add_relationship("Device Uptime Series", SNON_REL_CHILD_OF, "Device Uptime Sensor");
+    snon_add_relationship("Device Uptime Series", SNON_REL_VALUES, "Device Uptime");
 
     // Add special values
-    entity_register("Device Time", SNON_CLASS_VALUE, NULL);
-    entity_register("Device Uptime", SNON_CLASS_VALUE, NULL);
+    snon_register("Device Time", SNON_CLASS_VALUE, NULL);
+    snon_register("Device Uptime", SNON_CLASS_VALUE, NULL);
 
-    // Add values
-    entity_register("Device Temp", SNON_CLASS_VALUE, NULL);
-    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "[\"%4.2f\"]", rp2040_get_temp());
-    entity_name_update("Device Temp", snprintf_buffer);
-    add_repeating_timer_ms(1000, sensor_update, NULL, &sensor_timer);
- 
-    entity_register("Debug LED RGB", SNON_CLASS_VALUE, NULL);
+    // Add values 
+    snon_register("Debug LED RGB", SNON_CLASS_VALUE, NULL);
     snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "[\"0A000A\"]");
-    entity_name_update("Debug LED RGB", snprintf_buffer);
+    snon_set_values("Debug LED RGB", snprintf_buffer);
 
     // ===========================================================================================
     printf("Initializing Serial I/O...\n");
@@ -326,12 +265,51 @@ int main() {
             }
             else if(strcmp(command, "ls") == 0)
             {
-                char* json_output = entity_name_to_values("Entities");
+                // List all entities
+                char*       entity_name = NULL;
+                uint16_t    counter = 0;
+                uint16_t    json_output_length = 0;
+
+                json_output = snon_get_values("Entities");
 
                 if(json_output != NULL)
                 {
+                    json_output_length = strlen(json_output);
+
+                    counter = 0;
                     uart_puts(uart1, "\r\n");
-                    uart_puts(uart1, json_output);
+
+                    while(json_output[counter] != 0)
+                    {
+                        if(json_output[counter] == '"')
+                        {
+                            sscanf(&json_output[counter + 1], "%45s", &snprintf_buffer);
+
+                            uart_puts(uart1, snprintf_buffer);
+                            uart_puts(uart1, " - ");
+
+                            entity_name = snon_get_name(snprintf_buffer);
+
+                            if(entity_name != NULL)
+                            {
+                                uart_puts(uart1, entity_name);
+                            }
+                            else
+                            {
+                                uart_puts(uart1, "Unknown entity name");
+                            }
+                                
+                            if(counter + 50 < json_output_length)
+                            {
+                                uart_puts(uart1, "\r\n");
+                            }
+
+                            counter = counter + SNON_URN_LENGTH;
+                        }
+
+                        counter = counter + 1;
+                    }
+
                     uart_puts(uart1, "\r\n");
                     free(json_output);
                 }
@@ -341,7 +319,7 @@ int main() {
             else if(command[0] == '{')
             {
                 char*       json_output = NULL;
-                char        uuid[37];
+                char        eid[SNON_URN_LENGTH];
 
                 if(command[1] == '}')
                 {
@@ -350,28 +328,38 @@ int main() {
                     uint16_t    counter = 0;
                     uint16_t    json_output_length = 0;
 
-                    json_output = entity_name_to_values("Entities");
+                    json_output = snon_get_values("Entities");
 
                     if(json_output != NULL)
                     {
                         json_output_length = strlen(json_output);
+
+                        counter = 0;
                         uart_puts(uart1, "\r\n[");
 
                         while(json_output[counter] != 0)
                         {
                             if(json_output[counter] == '"')
                             {
-                                sscanf(&json_output[counter + 1], "%36s", &snprintf_buffer);
-                                entity_output = entity_uuid_to_json(snprintf_buffer);
-                                uart_puts(uart1, entity_output);
-                                free(entity_output);
+                                sscanf(&json_output[counter + 1], "%45s", &snprintf_buffer);
+                                entity_output = snon_get_json(snprintf_buffer);
+
+                                if(entity_output != NULL)
+                                {
+                                    uart_puts(uart1, entity_output);
+                                    free(entity_output);
+                                }
+                                else
+                                {
+                                    uart_puts(uart1, "{}");
+                                }
                                 
                                 if(counter + 50 < json_output_length)
                                 {
-                                    uart_puts(uart1, ", ");
+                                    uart_puts(uart1, ",");
                                 }
 
-                                counter = counter + 37;
+                                counter = counter + SNON_URN_LENGTH;
                             }
 
                             counter = counter + 1;
@@ -383,20 +371,20 @@ int main() {
                 }
                 else
                 {
-                    if(entity_has_eID(command, snprintf_buffer) == true)
+                    if(json_has_eid(command, snprintf_buffer) == true)
                     {
-                        // Copy over the UUID
-                        strncpy(uuid, snprintf_buffer, 36);
-                        uuid[36] = 0;
+                        // Copy over the eID
+                        strncpy(eid, snprintf_buffer, SNON_URN_LENGTH);
+                        eid[SNON_URN_LENGTH - 1] = 0;
                         
-                        if(entity_has_value(command, snprintf_buffer) == true)
+                        if(json_has_value(command, snprintf_buffer) == true)
                         {
                             // Update the value
                             printf("New Value %s\n", snprintf_buffer);
-                            entity_uuid_update(uuid, snprintf_buffer);
+                            snon_set_values(eid, snprintf_buffer);
                         }
 
-                        json_output = entity_uuid_to_json(uuid);
+                        json_output = snon_get_json(eid);
 
                         if(json_output != NULL)
                         {
@@ -406,13 +394,13 @@ int main() {
                         }
                         else
                         {
-                            printf("Unable to find entity with UUID %s\r\n", uuid);
+                            printf("Unable to find entity with eID %s\r\n", eid);
                             uart_puts(uart1, "\r\n{\r\n}");
                         }
                     }
                     else
                     {
-                        printf("Unable to find UUID\r\n");
+                        printf("Unable to find eID\r\n");
                         uart_puts(uart1, "\r\n{\r\n}");
                     }
                 }
@@ -421,23 +409,64 @@ int main() {
             }
             else if(strncmp(command, "cat ", 4) == 0)
             {
-                char* json_output = entity_name_to_json((char*) &(command[4]));
-
-                if(json_output == NULL)
-                {
-                    json_output = entity_uuid_to_json((char*) &(command[4]));
-                }
+                char* json_output = snon_get_json("urn:uuid:006670D9-39C1-5DF8-9CE3-F914FC92AA61");
+                //char* json_output = snon_get_json((char*) &(command[4]));
 
                 if(json_output != NULL)
                 {
                     uart_puts(uart1, "\r\n");
-                    uart_puts(uart1, json_output);
+
+                    counter = 0;
+                    while(json_output[counter] != 0)
+                    {
+                        uart_putc(uart1, json_output[counter]);
+
+                        if(json_output[counter] == ',')
+                        {
+                            uart_putc(uart1, '\r');
+                            uart_putc(uart1, '\n');
+                        }
+
+                        counter = counter + 1;
+                    }
+
                     uart_puts(uart1, "\r\n");
                     free(json_output);
                 }
                 else
                 {
                     uart_puts(uart1, "\r\nEntity not found\r\n");
+                }
+
+                uart_command_clear();
+            }
+            else if(strncmp(command, "dump", 4) == 0)
+            {
+                char* json_output = snon_get_dump();
+
+                if(json_output != NULL)
+                {
+                    uart_puts(uart1, "\r\n");
+
+                    counter = 0;
+                    while(json_output[counter] != 0)
+                    {
+                        if(json_output[counter] == '\n')
+                        {
+                            uart_putc(uart1, '\r');
+                        }
+
+                        uart_putc(uart1, json_output[counter]);
+
+                        counter = counter + 1;
+                    }
+
+                    uart_puts(uart1, "\r\n");
+                    free(json_output);
+                }
+                else
+                {
+                    uart_puts(uart1, "\r\nDump Error\r\n");
                 }
 
                 uart_command_clear();
@@ -534,7 +563,7 @@ int main() {
             }
         }
 
-        json_output = entity_name_to_values("Debug LED RGB");
+        json_output = snon_get_values("Debug LED RGB");
 
         if(json_output)
         {

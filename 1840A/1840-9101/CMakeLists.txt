@@ -20,6 +20,7 @@ add_executable(${PROJECT_NAME}
     st7789_lcd.c
     fonts.c
     gt20l16.c
+    asm_hmi.c
     pico-utils/ws2812.c
     snon/sha1.c
     snon/snon_utils.c
