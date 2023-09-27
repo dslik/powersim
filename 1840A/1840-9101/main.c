@@ -39,12 +39,90 @@
 // =================================================================================
 // Local Functions
 
+void draw_gen_top(void)
+{
+    st7789_start_pixels(PIN_CS);
+
+    // Title area
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
+    st7789_draw_string_centred(snon_get_value("Bus Designator"), B612_BMA_32, 0, SCREEN_WIDTH, 190);
+
+    // Subtitle area
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
+    st7789_draw_string_centred("L1", B612_BMA_24, (SCREEN_WIDTH / 3) * 0, (SCREEN_WIDTH / 3) * 1, 160);
+    st7789_draw_string_centred("L2", B612_BMA_24, (SCREEN_WIDTH / 3) * 1, (SCREEN_WIDTH / 3) * 2, 160);
+    st7789_draw_string_centred("L3", B612_BMA_24, (SCREEN_WIDTH / 3) * 2, (SCREEN_WIDTH / 3) * 3, 160);
+
+    // Value indicators
+    asm_draw_value_indicator(1, snon_get_value_as_double("L1 Current LoLo"),
+                                snon_get_value_as_double("L1 Current Lo"),
+                                snon_get_value_as_double("L1 Current"),
+                                snon_get_value_as_double("L1 Current Hi"),
+                                snon_get_value_as_double("L1 Current HiHi"),
+                                snon_get_value_as_double("L1 Current SP"));
+
+    asm_draw_value_indicator(2, snon_get_value_as_double("L2 Current LoLo"),
+                                snon_get_value_as_double("L2 Current Lo"),
+                                snon_get_value_as_double("L2 Current"),
+                                snon_get_value_as_double("L2 Current Hi"),
+                                snon_get_value_as_double("L2 Current HiHi"),
+                                snon_get_value_as_double("L2 Current SP"));
+
+    asm_draw_value_indicator(3, snon_get_value_as_double("L2 Current LoLo"),
+                                snon_get_value_as_double("L2 Current Lo"),
+                                snon_get_value_as_double("L2 Current"),
+                                snon_get_value_as_double("L2 Current Hi"),
+                                snon_get_value_as_double("L2 Current HiHi"),
+                                snon_get_value_as_double("L2 Current SP"));
+
+    // Value area
+    asm_draw_flow_value(1, snon_get_value_as_double("L1 Current"), "A");
+    asm_draw_flow_value(2, snon_get_value_as_double("L2 Current"), "A");
+    asm_draw_flow_value(3, snon_get_value_as_double("L3 Current"), "A");
+
+    // Flow area
+    if(snon_get_value_as_double("L1 Current") >=0)
+    {
+        asm_draw_flow_arrow(1, asm_flow_up);
+    }
+    else
+    {
+        asm_draw_flow_arrow(1, asm_flow_down);
+    }
+
+    if(snon_get_value_as_double("L2 Current") >=0)
+    {
+        asm_draw_flow_arrow(2, asm_flow_up);
+    }
+    else
+    {
+        asm_draw_flow_arrow(2, asm_flow_down);
+    }
+
+    if(snon_get_value_as_double("L3 Current") >=0)
+    {
+        asm_draw_flow_arrow(3, asm_flow_up);
+    }
+    else
+    {
+        asm_draw_flow_arrow(3, asm_flow_down);
+    }
+
+    //asm_draw_value_alarm(2, asm_alarm_one);
+    //asm_draw_value_alarm(3, asm_alarm_two);
+
+    st7789_end_pixels();    
+}
+
+
+
 int main() {
     datetime_t  t;
     bool        get_time_valid = false;
     char        snprintf_buffer[SNPRINTF_BUFFER_SIZE];
     uint16_t    counter = 0;
     char*       json_output = NULL;
+    bool        refresh_needed = false;
 
     stdio_init_all();
 
@@ -86,93 +164,6 @@ int main() {
 
     snon_name_to_eid("device", snprintf_buffer);
     printf("Device eID:   %s\n", snprintf_buffer);
-
-    // ===========================================================================================
-    printf("LCD init...\n");
-
-    // Turn off backlight
-    gpio_init(PIN_BL);
-    gpio_set_dir(PIN_BL, GPIO_OUT);
-    gpio_put(PIN_BL, 0);
-
-    // Initialize the LCD
-    st7789_init();
-    st7789_init_lcd(PIN_CS);
-    st7789_init_lcd(PIN_CS_2);
-
-    // Clear the top LCD
-    st7789_start_pixels(PIN_CS);
-    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
-    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
-
-    // Turn on backlight
-    gpio_put(PIN_BL, 1);
-
-    printf("LCD initialized...\n");
-
-    // Title area
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
-    st7789_draw_string_centred("=WBA01", B612_BMA_32, 0, SCREEN_WIDTH, 190);
-
-    // Subtitle area
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
-    st7789_draw_string_centred("L1", B612_BMA_24, (SCREEN_WIDTH / 3) * 0, (SCREEN_WIDTH / 3) * 1, 160);
-    st7789_draw_string_centred("L2", B612_BMA_24, (SCREEN_WIDTH / 3) * 1, (SCREEN_WIDTH / 3) * 2, 160);
-    st7789_draw_string_centred("L3", B612_BMA_24, (SCREEN_WIDTH / 3) * 2, (SCREEN_WIDTH / 3) * 3, 160);
-
-    // Value indicators
-    asm_draw_value_indicator(1, -10, -5, 2, 5, 10, 5);
-    asm_draw_value_indicator(2, -10, -5, -13, 5, 10, -2);
-    asm_draw_value_indicator(3, -10, -5, 18, 5, 10, 0);
-
-
-    // Value area
-    asm_draw_flow_value(1, 10.12, "A");
-    asm_draw_flow_value(2, 102.12, "A");
-    asm_draw_flow_value(3, 1020.12, "A");
-
-    // Flow area
-    asm_draw_flow_arrow(1, asm_flow_none);
-    asm_draw_flow_arrow(2, asm_flow_up);
-    asm_draw_flow_arrow(3, asm_flow_down);
-
-    asm_draw_value_alarm(2, asm_alarm_one);
-    asm_draw_value_alarm(3, asm_alarm_two);
-
-    st7789_end_pixels();
-
-
-    printf("Displaying characters from font chip...\n");
-    gt20l16_init();
-
-    st7789_start_pixels(PIN_CS_2);
-
-    gt20l16_draw_string("Hello World!", 0, 224, 1);
-    gt20l16_draw_string("Actual size of the font.", 0, 208, 1);
-
-    gt20l16_draw_string("Hello World!", 0, 84, 2);
-    gt20l16_draw_string("Doubled font.", 0, 68, 2);
-
-    st7789_end_pixels();
-    st7789_start_pixels(PIN_CS_2);
-
-    st7789_set_fgcolor(0xFFFF);
-    st7789_set_bgcolor(0x0000);
-
-    gt20l16_draw_string("Hello", 0, 16, 4);
-    gt20l16_draw_string("World!", 0, 0, 4);
-
-    st7789_draw_image(image2, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
-
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
-    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
-    st7789_draw_string_centred("ABCDEFGHIJK", B612_BMA_32, 0, SCREEN_WIDTH, 190);
-    st7789_draw_string_centred("L1", B612_BMA_24, 0, 80, 160);
-    st7789_draw_string_centred("440", B612_BMA_24, 0, 80, 90);
-    st7789_draw_string_centred("A", B612_BMA_24, 0, 80, 60);
-
-    st7789_end_pixels();
 
 
     // ===========================================================================================
@@ -235,6 +226,122 @@ int main() {
     snon_register("Debug LED RGB", SNON_CLASS_VALUE, NULL);
     snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "[\"0A000A\"]");
     snon_set_values("Debug LED RGB", snprintf_buffer);
+
+    snon_register("Bus Designator", SNON_CLASS_VALUE, NULL);
+    snon_set_values("Bus Designator", "[\"WAITING\"]");
+
+    snon_register("L1 Current LoLo", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L1 Current LoLo", "[\"-2\"]");
+
+    snon_register("L1 Current Lo", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L1 Current Lo", "[\"-1\"]");
+
+    snon_register("L1 Current", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L1 Current", "[\"0\"]");
+
+    snon_register("L1 Current SP", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L1 Current SP", "[\"0\"]");
+
+    snon_register("L1 Current Hi", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L1 Current Hi", "[\"1\"]");
+
+    snon_register("L1 Current HiHi", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L1 Current HiHi", "[\"2\"]");
+
+    snon_register("L2 Current LoLo", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L2 Current LoLo", "[\"-2\"]");
+
+    snon_register("L2 Current Lo", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L2 Current Lo", "[\"-1\"]");
+
+    snon_register("L2 Current", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L2 Current", "[\"0\"]");
+
+    snon_register("L2 Current SP", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L2 Current SP", "[\"0\"]");
+
+    snon_register("L2 Current Hi", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L2 Current Hi", "[\"1\"]");
+
+    snon_register("L2 Current HiHi", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L2 Current HiHi", "[\"2\"]");
+
+    snon_register("L3 Current LoLo", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L3 Current LoLo", "[\"-2\"]");
+
+    snon_register("L3 Current Lo", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L3 Current Lo", "[\"-1\"]");
+
+    snon_register("L3 Current", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L3 Current", "[\"0\"]");
+
+    snon_register("L3 Current SP", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L3 Current SP", "[\"0\"]");
+
+    snon_register("L3 Current Hi", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L3 Current Hi", "[\"1\"]");
+
+    snon_register("L3 Current HiHi", SNON_CLASS_VALUE, NULL);
+    snon_set_values("L3 Current HiHi", "[\"2\"]");
+
+
+    // ===========================================================================================
+    printf("LCD init...\n");
+
+    // Turn off backlight
+    gpio_init(PIN_BL);
+    gpio_set_dir(PIN_BL, GPIO_OUT);
+    gpio_put(PIN_BL, 0);
+
+    // Initialize the LCD
+    st7789_init();
+    st7789_init_lcd(PIN_CS);
+    st7789_init_lcd(PIN_CS_2);
+
+    // Clear the top LCD
+    st7789_start_pixels(PIN_CS);
+    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
+    st7789_end_pixels();
+
+    // Turn on backlight
+    gpio_put(PIN_BL, 1);
+
+    printf("LCD initialized...\n");
+
+    draw_gen_top();
+
+    printf("Displaying characters from font chip...\n");
+    gt20l16_init();
+
+    st7789_start_pixels(PIN_CS_2);
+
+    gt20l16_draw_string("Hello World!", 0, 224, 1);
+    gt20l16_draw_string("Actual size of the font.", 0, 208, 1);
+
+    gt20l16_draw_string("Hello World!", 0, 84, 2);
+    gt20l16_draw_string("Doubled font.", 0, 68, 2);
+
+    st7789_end_pixels();
+    st7789_start_pixels(PIN_CS_2);
+
+    st7789_set_fgcolor(0xFFFF);
+    st7789_set_bgcolor(0x0000);
+
+    gt20l16_draw_string("Hello", 0, 16, 4);
+    gt20l16_draw_string("World!", 0, 0, 4);
+
+    st7789_draw_image(image2, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
+
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
+    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_draw_string_centred("ABCDEFGHIJK", B612_BMA_32, 0, SCREEN_WIDTH, 190);
+    st7789_draw_string_centred("L1", B612_BMA_24, 0, 80, 160);
+    st7789_draw_string_centred("440", B612_BMA_24, 0, 80, 90);
+    st7789_draw_string_centred("A", B612_BMA_24, 0, 80, 60);
+
+    st7789_end_pixels();
 
     // ===========================================================================================
     printf("Initializing Serial I/O...\n");
@@ -382,6 +489,7 @@ int main() {
                             // Update the value
                             printf("New Value %s\n", snprintf_buffer);
                             snon_set_values(eid, snprintf_buffer);
+                            refresh_needed = true;
                         }
 
                         json_output = snon_get_json(eid);
@@ -409,8 +517,7 @@ int main() {
             }
             else if(strncmp(command, "cat ", 4) == 0)
             {
-                char* json_output = snon_get_json("urn:uuid:006670D9-39C1-5DF8-9CE3-F914FC92AA61");
-                //char* json_output = snon_get_json((char*) &(command[4]));
+                char* json_output = snon_get_json((char*) &(command[4]));
 
                 if(json_output != NULL)
                 {
@@ -563,18 +670,25 @@ int main() {
             }
         }
 
-        json_output = snon_get_values("Debug LED RGB");
-
-        if(json_output)
+        if(refresh_needed == true)
         {
-            uint8_t r_value = 0;
-            uint8_t g_value = 0;
-            uint8_t b_value = 0;
+            draw_gen_top();
 
-            sscanf(json_output, "[\"%2X%2X%2X\"]", &r_value, &g_value, &b_value);
-            ws2812_program_init(pio1, display_sm, display_sm_offset, DEBUG_WS2812, 1200000, false);
-            put_pixel(urgb_u32(r_value, g_value, b_value));
-            free(json_output);
+            json_output = snon_get_values("Debug LED RGB");
+
+            if(json_output)
+            {
+                uint8_t r_value = 0;
+                uint8_t g_value = 0;
+                uint8_t b_value = 0;
+
+                sscanf(json_output, "[\"%2X%2X%2X\"]", &r_value, &g_value, &b_value);
+                ws2812_program_init(pio1, display_sm, display_sm_offset, DEBUG_WS2812, 1200000, false);
+                put_pixel(urgb_u32(r_value, g_value, b_value));
+                free(json_output);
+            }
+
+            refresh_needed = false;
         }
 
         sleep_ms(100);

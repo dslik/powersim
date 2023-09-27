@@ -13,7 +13,7 @@
 // Local Prototypes
 const char* character_to_array(char character, uint8_t typeface);
 const uint8_t character_to_width(char character, uint8_t typeface);
-const uint8_t character_to_height(char character, uint8_t typeface);
+const uint8_t character_to_height(uint8_t typeface);
 
 
 // =================================================================================
@@ -22,7 +22,7 @@ int16_t st7789_draw_character(char character, uint8_t typeface, uint16_t x_offse
 {
 	const uint8_t*	character_data = character_to_array(character, typeface);
 	const uint8_t 	character_width = character_to_width(character, typeface);
-	const uint8_t 	character_height = character_to_height(character, typeface);
+	const uint8_t 	character_height = character_to_height(typeface);
 	uint16_t counter = 0;
 	uint8_t row_counter = 0;
 	uint8_t col_counter = 0;
@@ -74,14 +74,24 @@ void st7789_draw_string(char* string, uint8_t typeface, uint16_t x_offset, uint1
 void st7789_draw_string_centred(char* string, uint8_t typeface, uint16_t x_start, uint16_t x_end, uint16_t y_offset)
 {
 	uint16_t counter = 0;
-	uint16_t offset = st7789_centre_string(string, typeface, x_start, x_end);
-    
+	uint16_t offset = 0;
+	
+	if(string == NULL)
+	{
+		string = "NULL";
+	}
+	
+	offset = st7789_centre_string(string, typeface, x_start, x_end);
 
+	st7789_draw_rect(offset - x_start, character_to_height(typeface), x_start, y_offset, 0);
+    
 	while(string[counter] != 0)
 	{
 		offset = st7789_draw_character(string[counter], typeface, offset, y_offset);
 		counter = counter + 1;
 	}
+
+	st7789_draw_rect(x_end - offset, character_to_height(typeface), offset, y_offset, 0);
 }
 
 uint16_t st7789_centre_string(char* string, uint8_t typeface, uint16_t x_start, uint16_t x_end)
@@ -287,7 +297,7 @@ const uint8_t character_to_width(char character, uint8_t typeface)
 	return(0);		
 }
 
-const uint8_t character_to_height(char character, uint8_t typeface)
+const uint8_t character_to_height(uint8_t typeface)
 {
 	if(typeface == B612_BMA_24)
 	{

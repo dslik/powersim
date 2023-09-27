@@ -25,6 +25,9 @@ void asm_draw_flow_arrow(uint8_t phase, uint8_t direction)
 	}
 
     st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_draw_rect(24, 30, (SCREEN_WIDTH / 3) * (phase - 1) + (SCREEN_WIDTH / 6) - 12, 10, 5);
+
     st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
 
 	if(direction == asm_flow_none)
@@ -94,6 +97,7 @@ void asm_draw_value_indicator(uint8_t phase, float ll, float l, float value, flo
     st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
 
     // Draw indicator
+	st7789_draw_rect(64, 12, x_offset + 8, y_offset + 15, 0);
 	st7789_draw_rect(64, 15, x_offset + 8, y_offset, 2);
 	st7789_draw_rect(inner_width + 2, 15, x_offset + 8 + inner_start - 1, y_offset, 2);
 
