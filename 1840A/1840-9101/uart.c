@@ -21,7 +21,7 @@
 #include "uart.h"
 
 // Constants
-#define COMMAND_STRING_MAX_LENGTH    6400
+#define COMMAND_STRING_MAX_LENGTH    254
 
 // Globals
 char collect_string[COMMAND_STRING_MAX_LENGTH];

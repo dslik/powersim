@@ -42,7 +42,7 @@ static const uint8_t st7789_init_seq[] = {
         1, 20, 0x01,                         // Software reset
         1, 10, 0x11,                         // Exit sleep mode
         2, 2, 0x3a, 0x55,                    // Set colour mode to 16 bit
-        2, 0, 0x36, 0b1100000,                    // Set MADCTL: row then column, refresh is bottom to top ????
+        2, 0, 0x36, 0b1100000,               // Set MADCTL: row then column, refresh is bottom to top ????
         5, 0, 0x2a, 0x00, 0x00, SCREEN_WIDTH >> 8, SCREEN_WIDTH & 0xff,   // CASET: column addresses
         5, 0, 0x2b, 0x00, 0x00, SCREEN_HEIGHT >> 8, SCREEN_HEIGHT & 0xff, // RASET: row addresses
         1, 2, 0x21,                          // Inversion on, then 10 ms delay (supposedly a hack?)
@@ -171,11 +171,6 @@ inline void st7789_set_pixel_xy(uint16_t colour, uint16_t x, uint16_t y, uint8_t
         st7789_set_pixel(colour);
         pixels = pixels - 1;
     }
-}
-
-inline void st7789_set_halfpixel(uint8_t value)
-{
-    st7789_lcd_put(PIO_global, sm_global, value);
 }
 
 inline void st7789_end_pixels(void)

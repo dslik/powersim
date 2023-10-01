@@ -23,122 +23,53 @@
 #include "pins.h"
 #include "pico-utils/ws2812.h"
 #include "uart.h"
+#include "build.h"
+#include "sensors.h"
+#include "hmi.h"
 #include "st7789_lcd.h"
-#include "fonts.h"
 #include "gt20l16.h"
 #include "snon/sha1.h"
 #include "snon/snon_utils.h"
+#include "mem_utils.h"
 
-#include "images.h"
 #include "asm_hmi.h"
+#include "vita40.h"
 
 // Local Constants
 #define DEBUG_WS2812            11
 #define SNPRINTF_BUFFER_SIZE    80
 
+// Global Variables
+uint            pio_sm = 0;
+uint            pio_sm_offset = 0;
+bool            refresh_needed = false;
+
 // =================================================================================
 // Local Functions
 
-void draw_gen_top(void)
-{
-    st7789_start_pixels(PIN_CS);
-
-    // Title area
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
-    st7789_draw_string_centred(snon_get_value("Bus Designator"), B612_BMA_32, 0, SCREEN_WIDTH, 190);
-
-    // Subtitle area
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
-    st7789_draw_string_centred("L1", B612_BMA_24, (SCREEN_WIDTH / 3) * 0, (SCREEN_WIDTH / 3) * 1, 160);
-    st7789_draw_string_centred("L2", B612_BMA_24, (SCREEN_WIDTH / 3) * 1, (SCREEN_WIDTH / 3) * 2, 160);
-    st7789_draw_string_centred("L3", B612_BMA_24, (SCREEN_WIDTH / 3) * 2, (SCREEN_WIDTH / 3) * 3, 160);
-
-    // Value indicators
-    asm_draw_value_indicator(1, snon_get_value_as_double("L1 Current LoLo"),
-                                snon_get_value_as_double("L1 Current Lo"),
-                                snon_get_value_as_double("L1 Current"),
-                                snon_get_value_as_double("L1 Current Hi"),
-                                snon_get_value_as_double("L1 Current HiHi"),
-                                snon_get_value_as_double("L1 Current SP"));
-
-    asm_draw_value_indicator(2, snon_get_value_as_double("L2 Current LoLo"),
-                                snon_get_value_as_double("L2 Current Lo"),
-                                snon_get_value_as_double("L2 Current"),
-                                snon_get_value_as_double("L2 Current Hi"),
-                                snon_get_value_as_double("L2 Current HiHi"),
-                                snon_get_value_as_double("L2 Current SP"));
-
-    asm_draw_value_indicator(3, snon_get_value_as_double("L2 Current LoLo"),
-                                snon_get_value_as_double("L2 Current Lo"),
-                                snon_get_value_as_double("L2 Current"),
-                                snon_get_value_as_double("L2 Current Hi"),
-                                snon_get_value_as_double("L2 Current HiHi"),
-                                snon_get_value_as_double("L2 Current SP"));
-
-    // Value area
-    asm_draw_flow_value(1, snon_get_value_as_double("L1 Current"), "A");
-    asm_draw_flow_value(2, snon_get_value_as_double("L2 Current"), "A");
-    asm_draw_flow_value(3, snon_get_value_as_double("L3 Current"), "A");
-
-    // Flow area
-    if(snon_get_value_as_double("L1 Current") >=0)
-    {
-        asm_draw_flow_arrow(1, asm_flow_up);
-    }
-    else
-    {
-        asm_draw_flow_arrow(1, asm_flow_down);
-    }
-
-    if(snon_get_value_as_double("L2 Current") >=0)
-    {
-        asm_draw_flow_arrow(2, asm_flow_up);
-    }
-    else
-    {
-        asm_draw_flow_arrow(2, asm_flow_down);
-    }
-
-    if(snon_get_value_as_double("L3 Current") >=0)
-    {
-        asm_draw_flow_arrow(3, asm_flow_up);
-    }
-    else
-    {
-        asm_draw_flow_arrow(3, asm_flow_down);
-    }
-
-    //asm_draw_value_alarm(2, asm_alarm_one);
-    //asm_draw_value_alarm(3, asm_alarm_two);
-
-    st7789_end_pixels();    
-}
-
-
-
 int main() {
+    struct  repeating_timer ledTimer;
     datetime_t  t;
     bool        get_time_valid = false;
     char        snprintf_buffer[SNPRINTF_BUFFER_SIZE];
     uint16_t    counter = 0;
     char*       json_output = NULL;
-    bool        refresh_needed = false;
 
     stdio_init_all();
 
     printf("\n\n");
     printf("---------------------------------------------------------------------------------\n");
-    printf("Protonema 1840 Front Panel End Module, Firmware 0.1.0-alpha.3\n");
+    printf("Protonema 1840 Front Panel End Module, Firmware %s\n", FW_VERSION);
     printf("CERN-OHL-S v2 (https://github.com/dslik/power-sim/blob/main/license.md)\n");
     printf("---------------------------------------------------------------------------------\n");
     printf("Enable debug LED...\n");
 
     // Get first free state machine in PIO 1
-    uint display_sm = pio_claim_unused_sm(pio1, true);
-    uint display_sm_offset = pio_add_program(pio1, &ws2812_program);
+    pio_sm = pio_claim_unused_sm(pio1, true);
+    pio_sm_offset = pio_add_program(pio1, &ws2812_program);
 
     // Set the debug LED to purple
-    ws2812_program_init(pio1, display_sm, display_sm_offset, DEBUG_WS2812, 1200000, false);
+    ws2812_program_init(pio1, pio_sm, pio_sm_offset, DEBUG_WS2812, 1200000, false);
     put_pixel(urgb_u32(10, 0, 10));
 
     // Wait for the PIO to finish writing out data
@@ -163,130 +94,15 @@ int main() {
     printf("\n");
 
     snon_name_to_eid("device", snprintf_buffer);
-    printf("Device eID:   %s\n", snprintf_buffer);
-
-
-    // ===========================================================================================
-    ws2812_program_init(pio1, display_sm, display_sm_offset, 18, 800000, false);
-    put_pixel(urgb_u32(10, 0, 0));
-    put_pixel(urgb_u32(10, 0, 0));
-    put_pixel(urgb_u32(10, 0, 0));
-
-    put_pixel(urgb_u32(10, 0, 0));
-    put_pixel(urgb_u32(10, 0, 0));
-    put_pixel(urgb_u32(10, 0, 0));
-
-    put_pixel(urgb_u32(10, 0, 0));
-    put_pixel(urgb_u32(10, 0, 0));
-    put_pixel(urgb_u32(10, 0, 0));
-
-    put_pixel(urgb_u32(0, 10, 0));
-    put_pixel(urgb_u32(0, 10, 0));
-    put_pixel(urgb_u32(0, 10, 0));
-    put_pixel(urgb_u32(0, 10, 0));
-
-    put_pixel(urgb_u32(0, 10, 0));
-    put_pixel(urgb_u32(0, 10, 0));
-    put_pixel(urgb_u32(0, 10, 0));
+    printf("Device eID:    %s\n", snprintf_buffer);
 
     // ===========================================================================================
-    printf("Initializing SNON entities...\n");
-
-    snon_initialize("1840A Edge Display");
-
-    // Add measurands
-    snon_register("Time Measurand", SNON_CLASS_MEASURAND, "{\"meU\":\"s\",\"meT\":\"iso8601\",\"meAq\":\"count\"}");
-    snon_register("Seconds Measurand", SNON_CLASS_MEASURAND, "{\"meU\":\"s\",\"meT\":\"numeric\",\"meAq\":\"count\",\"meUS\":{\"*\":\"s\"},\"meUSx\":{\"*\":\"seconds\"},\"meR\":\"1\",\"meAc\":\"1\"}");
-
-    // Add sensors
-    snon_register("Device Time Sensor", SNON_CLASS_SENSOR, NULL);
-    snon_add_relationship("Device Time Sensor", SNON_REL_CHILD_OF, "Device");
-    snon_add_relationship("Device Time Sensor", SNON_REL_MEASURAND, "Time Measurand");
-
-    snon_register("Device Uptime Sensor", SNON_CLASS_SENSOR, NULL);
-    snon_add_relationship("Device Uptime Sensor", SNON_REL_CHILD_OF, "Device");
-    snon_add_relationship("Device Uptime Sensor", SNON_REL_MEASURAND, "Seconds Measurand");
-
-    // Add series
-    snon_register("Device Time Series", SNON_CLASS_SERIES, NULL);
-    snon_add_relationship("Device Time Series", SNON_REL_MEASURAND, "Time Measurand");
-    snon_add_relationship("Device Time Series", SNON_REL_CHILD_OF, "Device Time Sensor");
-    snon_add_relationship("Device Time Series", SNON_REL_VALUES, "Device Time");
-
-    snon_register("Device Uptime Series", SNON_CLASS_SERIES, NULL);
-    snon_add_relationship("Device Uptime Series", SNON_REL_MEASURAND, "Seconds Measurand");
-    snon_add_relationship("Device Uptime Series", SNON_REL_CHILD_OF, "Device Uptime Sensor");
-    snon_add_relationship("Device Uptime Series", SNON_REL_VALUES, "Device Uptime");
-
-    // Add special values
-    snon_register("Device Time", SNON_CLASS_VALUE, NULL);
-    snon_register("Device Uptime", SNON_CLASS_VALUE, NULL);
-
-    // Add values 
-    snon_register("Debug LED RGB", SNON_CLASS_VALUE, NULL);
-    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "[\"0A000A\"]");
-    snon_set_values("Debug LED RGB", snprintf_buffer);
-
-    snon_register("Bus Designator", SNON_CLASS_VALUE, NULL);
-    snon_set_values("Bus Designator", "[\"WAITING\"]");
-
-    snon_register("L1 Current LoLo", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L1 Current LoLo", "[\"-2\"]");
-
-    snon_register("L1 Current Lo", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L1 Current Lo", "[\"-1\"]");
-
-    snon_register("L1 Current", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L1 Current", "[\"0\"]");
-
-    snon_register("L1 Current SP", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L1 Current SP", "[\"0\"]");
-
-    snon_register("L1 Current Hi", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L1 Current Hi", "[\"1\"]");
-
-    snon_register("L1 Current HiHi", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L1 Current HiHi", "[\"2\"]");
-
-    snon_register("L2 Current LoLo", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L2 Current LoLo", "[\"-2\"]");
-
-    snon_register("L2 Current Lo", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L2 Current Lo", "[\"-1\"]");
-
-    snon_register("L2 Current", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L2 Current", "[\"0\"]");
-
-    snon_register("L2 Current SP", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L2 Current SP", "[\"0\"]");
-
-    snon_register("L2 Current Hi", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L2 Current Hi", "[\"1\"]");
-
-    snon_register("L2 Current HiHi", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L2 Current HiHi", "[\"2\"]");
-
-    snon_register("L3 Current LoLo", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L3 Current LoLo", "[\"-2\"]");
-
-    snon_register("L3 Current Lo", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L3 Current Lo", "[\"-1\"]");
-
-    snon_register("L3 Current", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L3 Current", "[\"0\"]");
-
-    snon_register("L3 Current SP", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L3 Current SP", "[\"0\"]");
-
-    snon_register("L3 Current Hi", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L3 Current Hi", "[\"1\"]");
-
-    snon_register("L3 Current HiHi", SNON_CLASS_VALUE, NULL);
-    snon_set_values("L3 Current HiHi", "[\"2\"]");
-
+    printf("Initializing SNON entities (%lu)\n", get_free_ram_2());
+    sensors_initialize();
+    printf("SNON entities initialized. (%lu)\n", get_free_ram_2());
 
     // ===========================================================================================
-    printf("LCD init...\n");
+    printf("Front Panel init...\n");
 
     // Turn off backlight
     gpio_init(PIN_BL);
@@ -305,43 +121,22 @@ int main() {
     st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
     st7789_end_pixels();
 
+    // Clear the bottom LCD
+    st7789_start_pixels(PIN_CS_2);
+    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
+    st7789_end_pixels();
+
     // Turn on backlight
     gpio_put(PIN_BL, 1);
+
+    add_repeating_timer_ms(100, draw_gen_leds, NULL, &ledTimer);
 
     printf("LCD initialized...\n");
 
     draw_gen_top();
-
-    printf("Displaying characters from font chip...\n");
-    gt20l16_init();
-
-    st7789_start_pixels(PIN_CS_2);
-
-    gt20l16_draw_string("Hello World!", 0, 224, 1);
-    gt20l16_draw_string("Actual size of the font.", 0, 208, 1);
-
-    gt20l16_draw_string("Hello World!", 0, 84, 2);
-    gt20l16_draw_string("Doubled font.", 0, 68, 2);
-
-    st7789_end_pixels();
-    st7789_start_pixels(PIN_CS_2);
-
-    st7789_set_fgcolor(0xFFFF);
-    st7789_set_bgcolor(0x0000);
-
-    gt20l16_draw_string("Hello", 0, 16, 4);
-    gt20l16_draw_string("World!", 0, 0, 4);
-
-    st7789_draw_image(image2, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
-
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_text));
-    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
-    st7789_draw_string_centred("ABCDEFGHIJK", B612_BMA_32, 0, SCREEN_WIDTH, 190);
-    st7789_draw_string_centred("L1", B612_BMA_24, 0, 80, 160);
-    st7789_draw_string_centred("440", B612_BMA_24, 0, 80, 90);
-    st7789_draw_string_centred("A", B612_BMA_24, 0, 80, 60);
-
-    st7789_end_pixels();
+    draw_gen_bottom();
 
     // ===========================================================================================
     printf("Initializing Serial I/O...\n");
@@ -419,6 +214,10 @@ int main() {
 
                     uart_puts(uart1, "\r\n");
                     free(json_output);
+                }
+                else
+                {
+                    uart_puts(uart1, "\r\nError: Out of memory.\r\n");
                 }
 
                 uart_command_clear();
@@ -573,8 +372,15 @@ int main() {
                 }
                 else
                 {
-                    uart_puts(uart1, "\r\nDump Error\r\n");
+                    uart_puts(uart1, "\r\nError: Out of memory.\r\n");
                 }
+
+                uart_command_clear();
+            }
+            else if(strcmp(command, "get mem") == 0)
+            {
+                snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nFree memory: %lu bytes\r\n", get_free_ram_2());
+                uart_puts(uart1, snprintf_buffer);
 
                 uart_command_clear();
             }
@@ -670,9 +476,11 @@ int main() {
             }
         }
 
+/*
         if(refresh_needed == true)
         {
             draw_gen_top();
+            draw_gen_bottom();
 
             json_output = snon_get_values("Debug LED RGB");
 
@@ -683,13 +491,14 @@ int main() {
                 uint8_t b_value = 0;
 
                 sscanf(json_output, "[\"%2X%2X%2X\"]", &r_value, &g_value, &b_value);
-                ws2812_program_init(pio1, display_sm, display_sm_offset, DEBUG_WS2812, 1200000, false);
+                ws2812_program_init(pio1, pio_sm, pio_sm_offset, DEBUG_WS2812, 1200000, false);
                 put_pixel(urgb_u32(r_value, g_value, b_value));
                 free(json_output);
             }
 
             refresh_needed = false;
         }
+*/
 
         sleep_ms(100);
 
