@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------------
 
 // Utility routines
-void draw_gen_top(void);
-void draw_gen_bottom(void);
+void init_gen_screens(void);
+void update_gen_screens(void);
 bool draw_gen_leds(struct repeating_timer *t);
 

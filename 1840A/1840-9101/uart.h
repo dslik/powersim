@@ -19,5 +19,7 @@ extern volatile uint8_t collect_active;
 void uart_setup(void);
 const char* uart_command_get(void);
 void uart_command_clear(void);
+bool uart_in_command_mode(void);
+void uart_command_exit(void);
 
 #endif // UART_H

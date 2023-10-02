@@ -47,6 +47,7 @@ target_link_libraries(${PROJECT_NAME}
     pico_unique_id
     hardware_adc
     hardware_i2c
+    pico_multicore
 )
 
 # Enable usb output, disable uart output

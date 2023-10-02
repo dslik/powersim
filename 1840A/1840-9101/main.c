@@ -16,6 +16,7 @@
 
 // Pico Headers
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
 #include "hardware/rtc.h"
 #include "hardware/i2c.h"
 
@@ -46,6 +47,44 @@ bool            refresh_needed = false;
 
 // =================================================================================
 // Local Functions
+
+void hmi_main(void)
+{
+    // Turn off backlight
+    gpio_init(PIN_BL);
+    gpio_set_dir(PIN_BL, GPIO_OUT);
+    gpio_put(PIN_BL, 0);
+
+    // Initialize the LCD
+    st7789_init();
+    st7789_init_lcd(PIN_CS);
+    st7789_init_lcd(PIN_CS_2);
+
+    // Clear the top LCD
+    st7789_start_pixels(PIN_CS);
+    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
+    st7789_end_pixels();
+
+    // Clear the bottom LCD
+    st7789_start_pixels(PIN_CS_2);
+    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
+    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
+    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
+    st7789_end_pixels();
+
+    // Turn on backlight
+    gpio_put(PIN_BL, 1);
+
+    init_gen_screens();
+
+    while(true)
+    {
+        //sleep_ms(1000);
+        update_gen_screens();
+    }
+}
 
 int main() {
     struct  repeating_timer ledTimer;
@@ -103,40 +142,11 @@ int main() {
 
     // ===========================================================================================
     printf("Front Panel init...\n");
-
-    // Turn off backlight
-    gpio_init(PIN_BL);
-    gpio_set_dir(PIN_BL, GPIO_OUT);
-    gpio_put(PIN_BL, 0);
-
-    // Initialize the LCD
-    st7789_init();
-    st7789_init_lcd(PIN_CS);
-    st7789_init_lcd(PIN_CS_2);
-
-    // Clear the top LCD
-    st7789_start_pixels(PIN_CS);
-    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
-    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
-    st7789_end_pixels();
-
-    // Clear the bottom LCD
-    st7789_start_pixels(PIN_CS_2);
-    st7789_set_bgcolor(st7789_rgb_to_colour(asm_bg_grey));
-    st7789_set_fgcolor(st7789_rgb_to_colour(asm_line_grey));
-    st7789_draw_rect(SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0);
-    st7789_end_pixels();
-
-    // Turn on backlight
-    gpio_put(PIN_BL, 1);
+    multicore_launch_core1(&hmi_main);
 
     add_repeating_timer_ms(100, draw_gen_leds, NULL, &ledTimer);
 
     printf("LCD initialized...\n");
-
-    draw_gen_top();
-    draw_gen_bottom();
 
     // ===========================================================================================
     printf("Initializing Serial I/O...\n");
@@ -149,83 +159,12 @@ int main() {
         const char* command = uart_command_get();
         if(strcmp(command, "") != 0)
         {
-            if(strcmp(command, "help") == 0)
-            {
-                uart_puts(uart1, "\r\nCommands:");
-                uart_puts(uart1, "\r\n\"help\"                - Displays list of commands");
-                uart_puts(uart1, "\r\n\"clear\"               - Clear the serial terminal");
-                uart_puts(uart1, "\r\n\"ls\"                  - List SNON entites");
-                uart_puts(uart1, "\r\n\"cat <entity>\"        - Display the value of an SNON entity");
-                uart_puts(uart1, "\r\n\"get time\"            - Get the current time");
-                uart_puts(uart1, "\r\n\"set time\"            - Set the current time");
-                uart_command_clear();
-            }
-            else if(strcmp(command, "clear") == 0)
-            {
-                uart_puts(uart1, "\033[2J");
-                uart_command_clear();
-            }
-            else if(strcmp(command, "ls") == 0)
-            {
-                // List all entities
-                char*       entity_name = NULL;
-                uint16_t    counter = 0;
-                uint16_t    json_output_length = 0;
-
-                json_output = snon_get_values("Entities");
-
-                if(json_output != NULL)
-                {
-                    json_output_length = strlen(json_output);
-
-                    counter = 0;
-                    uart_puts(uart1, "\r\n");
-
-                    while(json_output[counter] != 0)
-                    {
-                        if(json_output[counter] == '"')
-                        {
-                            sscanf(&json_output[counter + 1], "%45s", &snprintf_buffer);
-
-                            uart_puts(uart1, snprintf_buffer);
-                            uart_puts(uart1, " - ");
-
-                            entity_name = snon_get_name(snprintf_buffer);
-
-                            if(entity_name != NULL)
-                            {
-                                uart_puts(uart1, entity_name);
-                            }
-                            else
-                            {
-                                uart_puts(uart1, "Unknown entity name");
-                            }
-                                
-                            if(counter + 50 < json_output_length)
-                            {
-                                uart_puts(uart1, "\r\n");
-                            }
-
-                            counter = counter + SNON_URN_LENGTH;
-                        }
-
-                        counter = counter + 1;
-                    }
-
-                    uart_puts(uart1, "\r\n");
-                    free(json_output);
-                }
-                else
-                {
-                    uart_puts(uart1, "\r\nError: Out of memory.\r\n");
-                }
-
-                uart_command_clear();
-            }
-            else if(command[0] == '{')
+            if(command[0] == '{')
             {
                 char*       json_output = NULL;
                 char        eid[SNON_URN_LENGTH];
+
+                printf("Received SNON fragment \"%s\"\n", command);
 
                 if(command[1] == '}')
                 {
@@ -241,7 +180,7 @@ int main() {
                         json_output_length = strlen(json_output);
 
                         counter = 0;
-                        uart_puts(uart1, "\r\n[");
+                        uart_puts(uart1, "[");
 
                         while(json_output[counter] != 0)
                         {
@@ -295,193 +234,276 @@ int main() {
 
                         if(json_output != NULL)
                         {
-                            uart_puts(uart1, "\r\n");
                             uart_puts(uart1, json_output);
                             free(json_output);
                         }
                         else
                         {
                             printf("Unable to find entity with eID %s\r\n", eid);
-                            uart_puts(uart1, "\r\n{\r\n}");
+                            uart_puts(uart1, "{}");
                         }
                     }
                     else
                     {
                         printf("Unable to find eID\r\n");
-                        uart_puts(uart1, "\r\n{\r\n}");
+                        uart_puts(uart1, "{}");
                     }
                 }
 
-                uart_command_clear();
-            }
-            else if(strncmp(command, "cat ", 4) == 0)
-            {
-                char* json_output = snon_get_json((char*) &(command[4]));
-
-                if(json_output != NULL)
-                {
-                    uart_puts(uart1, "\r\n");
-
-                    counter = 0;
-                    while(json_output[counter] != 0)
-                    {
-                        uart_putc(uart1, json_output[counter]);
-
-                        if(json_output[counter] == ',')
-                        {
-                            uart_putc(uart1, '\r');
-                            uart_putc(uart1, '\n');
-                        }
-
-                        counter = counter + 1;
-                    }
-
-                    uart_puts(uart1, "\r\n");
-                    free(json_output);
-                }
-                else
-                {
-                    uart_puts(uart1, "\r\nEntity not found\r\n");
-                }
-
-                uart_command_clear();
-            }
-            else if(strncmp(command, "dump", 4) == 0)
-            {
-                char* json_output = snon_get_dump();
-
-                if(json_output != NULL)
-                {
-                    uart_puts(uart1, "\r\n");
-
-                    counter = 0;
-                    while(json_output[counter] != 0)
-                    {
-                        if(json_output[counter] == '\n')
-                        {
-                            uart_putc(uart1, '\r');
-                        }
-
-                        uart_putc(uart1, json_output[counter]);
-
-                        counter = counter + 1;
-                    }
-
-                    uart_puts(uart1, "\r\n");
-                    free(json_output);
-                }
-                else
-                {
-                    uart_puts(uart1, "\r\nError: Out of memory.\r\n");
-                }
-
-                uart_command_clear();
-            }
-            else if(strcmp(command, "get mem") == 0)
-            {
-                snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nFree memory: %lu bytes\r\n", get_free_ram_2());
-                uart_puts(uart1, snprintf_buffer);
-
-                uart_command_clear();
-            }
-            else if(strcmp(command, "get time") == 0)
-            {
-                get_time_valid = rtc_counter_to_iso8601(snprintf_buffer, time_us_64());
-
-                if(get_time_valid == true)
-                {
-                    uart_puts(uart1, "\r\nThe time is: ");
-                    uart_puts(uart1, snprintf_buffer);
-                }
-                else
-                {
-                    uart_puts(uart1, "\r\nRTC not running. Use the \"set time\" command to set the current time.");
-                }
-                uart_command_clear();
-            }
-            else if(strncmp(command, "set time ", 9) == 0)
-            {
-                unsigned int    year = 0;
-                unsigned int    month = 0;
-                unsigned int    day = 0;
-                unsigned int    hours = 0;
-                unsigned int    minutes = 0;
-                unsigned int    seconds = 0;
-                bool            set_valid = false;
-
-                sscanf(command, "set time %4u-%2u-%2uT%2u:%2u:%2uZ", &year, &month, &day, &hours, &minutes, &seconds);
-                if(year < 2022 || year > 2055)
-                {
-                    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid year %04d. Must be between 2022 and 2055", year);
-                    uart_puts(uart1, snprintf_buffer);
-                }
-                else if(month < 1 || month > 12)
-                {
-                    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid month %02d. Must be between 1 and 12", month);
-                    uart_puts(uart1, snprintf_buffer);
-                }
-                else if(day < 1 || day > 31)
-                {
-                    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid day %02d. Must be between 1 and 31", day);
-                    uart_puts(uart1, snprintf_buffer);
-                }
-                else if(hours < 0 || hours > 23)
-                {
-                    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid hour %02d. Must be between 0 and 23", hours);
-                    uart_puts(uart1, snprintf_buffer);
-                }
-                else if(minutes < 0 || minutes > 59)
-                {
-                    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid minute %02d. Must be between 0 and 59", minutes);
-                    uart_puts(uart1, snprintf_buffer);
-                }
-                else if(seconds < 0 || seconds > 59)
-                {
-                    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid second %02d. Must be between 0 and 59", hours);
-                    uart_puts(uart1, snprintf_buffer);
-                }
-                else
-                {
-                    t.year = year;
-                    t.month = month;
-                    t.day = day;
-                    t.hour = hours;
-                    t.min = minutes;
-                    t.sec = seconds;
-                    t.dotw = 0;
-
-                    snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "%04d-%02d-%02dT%02d:%02d:%02dZ", t.year, t.month, t.day, t.hour, t.min, t.sec);
-
-                    set_valid = rtc_set_time(snprintf_buffer);
-                    sleep_us(64);
-
-                    if(set_valid == true)
-                    {
-                        uart_puts(uart1, "\r\nTime set to ");
-                        uart_puts(uart1, snprintf_buffer);
-                    }
-                    else
-                    {
-                        uart_puts(uart1, "\r\nError setting time to ");
-                        uart_puts(uart1, snprintf_buffer);
-                    }
-                }
-
+                uart_puts(uart1, "\r\n");
                 uart_command_clear();
             }
             else
             {
-                uart_puts(uart1, "\r\nUnknown command\r\n");
-                uart_command_clear();
+                if(uart_in_command_mode())
+                {
+                    printf("Received Command \"%s\"\n", command);
+
+                    if(strcmp(command, "help") == 0)
+                    {
+                        uart_puts(uart1, "\r\nCommands:");
+                        uart_puts(uart1, "\r\n\"help\"                - Displays list of commands");
+                        uart_puts(uart1, "\r\n\"clear\"               - Clear the serial terminal");
+                        uart_puts(uart1, "\r\n\"ls\"                  - List SNON entites");
+                        uart_puts(uart1, "\r\n\"cat <entity>\"        - Display the value of an SNON entity");
+                        uart_puts(uart1, "\r\n\"get time\"            - Get the current time");
+                        uart_puts(uart1, "\r\n\"set time\"            - Set the current time");
+                        uart_command_clear();
+                    }
+                    else if(strcmp(command, "clear") == 0)
+                    {
+                        uart_puts(uart1, "\033[2J");
+                        uart_command_clear();
+                    }
+                    else if(strcmp(command, "ls") == 0)
+                    {
+                        // List all entities
+                        char*       entity_name = NULL;
+                        uint16_t    counter = 0;
+                        uint16_t    json_output_length = 0;
+
+                        json_output = snon_get_values("Entities");
+
+                        if(json_output != NULL)
+                        {
+                            json_output_length = strlen(json_output);
+
+                            counter = 0;
+                            uart_puts(uart1, "\r\n");
+
+                            while(json_output[counter] != 0)
+                            {
+                                if(json_output[counter] == '"')
+                                {
+                                    sscanf(&json_output[counter + 1], "%45s", &snprintf_buffer);
+
+                                    uart_puts(uart1, snprintf_buffer);
+                                    uart_puts(uart1, " - ");
+
+                                    entity_name = snon_get_name(snprintf_buffer);
+
+                                    if(entity_name != NULL)
+                                    {
+                                        uart_puts(uart1, entity_name);
+                                    }
+                                    else
+                                    {
+                                        uart_puts(uart1, "Unknown entity name");
+                                    }
+                                        
+                                    if(counter + 50 < json_output_length)
+                                    {
+                                        uart_puts(uart1, "\r\n");
+                                    }
+
+                                    counter = counter + SNON_URN_LENGTH;
+                                }
+
+                                counter = counter + 1;
+                            }
+
+                            uart_puts(uart1, "\r\n");
+                            free(json_output);
+                        }
+                        else
+                        {
+                            uart_puts(uart1, "\r\nError: Out of memory.\r\n");
+                        }
+
+                        uart_command_clear();
+                    }
+                    else if(strncmp(command, "cat ", 4) == 0)
+                    {
+                        char* json_output = snon_get_json((char*) &(command[4]));
+
+                        if(json_output != NULL)
+                        {
+                            uart_puts(uart1, "\r\n");
+
+                            counter = 0;
+                            while(json_output[counter] != 0)
+                            {
+                                uart_putc(uart1, json_output[counter]);
+
+                                if(json_output[counter] == ',')
+                                {
+                                    uart_putc(uart1, '\r');
+                                    uart_putc(uart1, '\n');
+                                }
+
+                                counter = counter + 1;
+                            }
+
+                            uart_puts(uart1, "\r\n");
+                            free(json_output);
+                        }
+                        else
+                        {
+                            uart_puts(uart1, "\r\nEntity not found\r\n");
+                        }
+
+                        uart_command_clear();
+                    }
+                    else if(strncmp(command, "dump", 4) == 0)
+                    {
+                        char* json_output = snon_get_dump();
+
+                        if(json_output != NULL)
+                        {
+                            uart_puts(uart1, "\r\n");
+
+                            counter = 0;
+                            while(json_output[counter] != 0)
+                            {
+                                if(json_output[counter] == '\n')
+                                {
+                                    uart_putc(uart1, '\r');
+                                }
+
+                                uart_putc(uart1, json_output[counter]);
+
+                                counter = counter + 1;
+                            }
+
+                            uart_puts(uart1, "\r\n");
+                            free(json_output);
+                        }
+                        else
+                        {
+                            uart_puts(uart1, "\r\nError: Out of memory.\r\n");
+                        }
+
+                        uart_command_clear();
+                    }
+                    else if(strcmp(command, "get mem") == 0)
+                    {
+                        snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nFree memory: %lu bytes\r\n", get_free_ram_2());
+                        uart_puts(uart1, snprintf_buffer);
+
+                        uart_command_clear();
+                    }
+                    else if(strcmp(command, "get time") == 0)
+                    {
+                        get_time_valid = rtc_counter_to_iso8601(snprintf_buffer, time_us_64());
+
+                        if(get_time_valid == true)
+                        {
+                            uart_puts(uart1, "\r\nThe time is: ");
+                            uart_puts(uart1, snprintf_buffer);
+                        }
+                        else
+                        {
+                            uart_puts(uart1, "\r\nRTC not running. Use the \"set time\" command to set the current time.");
+                        }
+                        uart_command_clear();
+                    }
+                    else if(strncmp(command, "set time ", 9) == 0)
+                    {
+                        unsigned int    year = 0;
+                        unsigned int    month = 0;
+                        unsigned int    day = 0;
+                        unsigned int    hours = 0;
+                        unsigned int    minutes = 0;
+                        unsigned int    seconds = 0;
+                        bool            set_valid = false;
+
+                        sscanf(command, "set time %4u-%2u-%2uT%2u:%2u:%2uZ", &year, &month, &day, &hours, &minutes, &seconds);
+                        if(year < 2022 || year > 2055)
+                        {
+                            snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid year %04d. Must be between 2022 and 2055", year);
+                            uart_puts(uart1, snprintf_buffer);
+                        }
+                        else if(month < 1 || month > 12)
+                        {
+                            snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid month %02d. Must be between 1 and 12", month);
+                            uart_puts(uart1, snprintf_buffer);
+                        }
+                        else if(day < 1 || day > 31)
+                        {
+                            snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid day %02d. Must be between 1 and 31", day);
+                            uart_puts(uart1, snprintf_buffer);
+                        }
+                        else if(hours < 0 || hours > 23)
+                        {
+                            snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid hour %02d. Must be between 0 and 23", hours);
+                            uart_puts(uart1, snprintf_buffer);
+                        }
+                        else if(minutes < 0 || minutes > 59)
+                        {
+                            snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid minute %02d. Must be between 0 and 59", minutes);
+                            uart_puts(uart1, snprintf_buffer);
+                        }
+                        else if(seconds < 0 || seconds > 59)
+                        {
+                            snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nInvalid second %02d. Must be between 0 and 59", hours);
+                            uart_puts(uart1, snprintf_buffer);
+                        }
+                        else
+                        {
+                            t.year = year;
+                            t.month = month;
+                            t.day = day;
+                            t.hour = hours;
+                            t.min = minutes;
+                            t.sec = seconds;
+                            t.dotw = 0;
+
+                            snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "%04d-%02d-%02dT%02d:%02d:%02dZ", t.year, t.month, t.day, t.hour, t.min, t.sec);
+
+                            set_valid = rtc_set_time(snprintf_buffer);
+                            sleep_us(64);
+
+                            if(set_valid == true)
+                            {
+                                uart_puts(uart1, "\r\nTime set to ");
+                                uart_puts(uart1, snprintf_buffer);
+                            }
+                            else
+                            {
+                                uart_puts(uart1, "\r\nError setting time to ");
+                                uart_puts(uart1, snprintf_buffer);
+                            }
+                        }
+
+                        uart_command_clear();
+                    }
+                    else if(strcmp(command, "exit") == 0)
+                    {
+                        uart_command_exit();
+                        uart_command_clear();
+                    }
+                    else
+                    {
+                        uart_puts(uart1, "\r\nUnknown command\r\n");
+                        uart_command_clear();
+                    }
+                }
             }
         }
 
-/*
+
         if(refresh_needed == true)
         {
-            draw_gen_top();
-            draw_gen_bottom();
-
             json_output = snon_get_values("Debug LED RGB");
 
             if(json_output)
@@ -498,9 +520,7 @@ int main() {
 
             refresh_needed = false;
         }
-*/
 
-        sleep_ms(100);
-
+        //sleep_ms(1);
     }
 }

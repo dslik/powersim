@@ -24,10 +24,10 @@
 #define COMMAND_STRING_MAX_LENGTH    254
 
 // Globals
-char collect_string[COMMAND_STRING_MAX_LENGTH];
-char command_string[COMMAND_STRING_MAX_LENGTH];
-uint8_t collect_string_pos = 0;
-uint8_t volatile collect_active = 0;
+volatile char collect_string[COMMAND_STRING_MAX_LENGTH];
+volatile char command_string[COMMAND_STRING_MAX_LENGTH];
+volatile uint8_t collect_string_pos = 0;
+volatile bool    command_mode=false;
 
 
 // Private prototypes
@@ -38,33 +38,36 @@ void uart_rx_isr(void);
 // Set up the UART
 void uart_setup(void)
 {
-    uart_init(uart1, 115200);
     gpio_set_function(4, GPIO_FUNC_UART);
     gpio_set_function(5, GPIO_FUNC_UART);
+    uart_init(uart1, 115200);
 
     // Disable flow control on the UART
     uart_set_hw_flow(uart1, false, false);
 
     // Disable FIFOs on the UART
-    uart_set_fifo_enabled(uart1, false);
+    uart_set_fifo_enabled(uart1, true);
 
     collect_string[0] = 0;
     command_string[0] = 0;
-    collect_active = 0;
     collect_string_pos = 0;
 
     // Set up UART interrupts
     irq_set_exclusive_handler(UART1_IRQ, uart_rx_isr);
     irq_set_enabled(UART1_IRQ, true);
+    irq_set_priority(UART1_IRQ, 0);
     uart_set_irq_enables(uart1, true, false);
 
-    // Required to prevent the first written character from being lsot
+    // Required to prevent the first written character from being lost
     sleep_ms(10);
 }
 
 void uart_display_prompt(void)
 {
-    uart_puts(uart1, "\r\n1840A > ");    
+    if(command_mode == true)
+    {
+        uart_puts(uart1, "\r\n1840A > ");    
+    }
 }
 
 // UART Interrupt Handler
@@ -73,10 +76,11 @@ void uart_rx_isr(void)
     uint8_t character = 0;
     uint8_t copy_counter = 0;
 
-    while (uart_is_readable(uart1))
+    while(uart_is_readable(uart1))
     {
         character = uart_getc(uart1);
-
+if(character == '\r') printf("\n");
+printf("%c", character);
         // Handle CR
         if(character == 0x0D)
         {
@@ -102,16 +106,6 @@ void uart_rx_isr(void)
                 collect_string[0] = 0;
             }
         }
-        else
-        {
-            if((character >= 0x20) && (character <= 0x7E))
-            {
-                if((collect_string_pos == 0) && (collect_active == 0))
-                {
-                    collect_active = 1;
-                }
-            }
-        }
 
         // Only add printable characters to the command string
         if((character >= 0x20) && (character <= 0x7E))
@@ -120,7 +114,11 @@ void uart_rx_isr(void)
             {
                 collect_string[collect_string_pos] = character;
                 collect_string[collect_string_pos + 1] = 0;
-                uart_putc(uart1, character);
+                
+                if(command_mode == true)
+                {
+                    uart_putc(uart1, character);
+                }
 
                 collect_string_pos = collect_string_pos + 1;
             }
@@ -129,13 +127,24 @@ void uart_rx_isr(void)
         // Handle backspace
         if(character == 0x08)
         {
-            if(collect_string_pos != 0)
+            if(command_mode == true)
             {
-                collect_string_pos = collect_string_pos - 1;
-                collect_string[collect_string_pos] = 0;
-                
-                uart_puts(uart1, "\033[1D \033[1D");
+                if(collect_string_pos != 0)
+                {
+                    collect_string_pos = collect_string_pos - 1;
+                    collect_string[collect_string_pos] = 0;
+                    
+                    uart_puts(uart1, "\033[1D \033[1D");
+                }
             }
+        }
+
+        // Handle escape
+        if(character == 0x1B)
+        {
+            command_mode = true;
+            uart_puts(uart1, "\r\nEntering Command Mode\r\n");
+            uart_display_prompt();
         }
     }
 }
@@ -148,6 +157,16 @@ const char* uart_command_get(void)
 void uart_command_clear(void)
 {
     command_string[0] = 0;
-    collect_active = 1;
     uart_display_prompt();
+}
+
+bool uart_in_command_mode(void)
+{
+    return(command_mode);
+}
+
+void uart_command_exit(void)
+{
+    command_mode = false;
+    uart_puts(uart1, "\r\nExiting Command Mode\r\n");
 }

@@ -105,7 +105,7 @@ inline void st7789_start_pixels(uint8_t display_cs_pin)
 void st7789_init(void)
 {
     PIO_global = pio0;
-    sm_global = 0;
+    sm_global = pio_claim_unused_sm(PIO_global, true);
     uint offset = pio_add_program(PIO_global, &st7789_lcd_program);
 
     st7789_lcd_program_init(PIO_global, sm_global, offset, PIN_DIN, PIN_CLK, SERIAL_CLK_DIV);
