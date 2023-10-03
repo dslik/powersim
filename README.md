@@ -4,6 +4,16 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-10-02
+
+The updated rack front panel for the generator synchronize indicator/switch came in, and everything fits. Looks pretty nice in the rack:
+
+![image](https://github.com/dslik/powersim/assets/5757591/9cb9a686-2768-4d84-b953-742f03ab40b8)
+
+On the software front, all of the sensors for the front panel LEDs are implemented and tested, and the LCD update routines are now far faster, and only update when a value has changed. Fixed a bunch of memory leaks and some FIFO overflows that would occasionally happen due to a priority inversion between ISRs. Good progress all around.
+
+Next steps are to test out and implement the rest of the boards for the generator front panel, and design the remainder of the front panel screens.
+
 ## 2023-09-24
 
 Everything is now being rendered programatically.
