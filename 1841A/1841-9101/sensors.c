@@ -16,7 +16,7 @@
 
 #define	INIT_VALUE	"vita40_green_standby"
 
-void sensors_initialize(void)
+void sensors_initialize_device(void)
 {
     snon_initialize("1840A Edge Display");
     snon_add_relationship("Entities", SNON_REL_CHILD_OF, "Device");
@@ -65,7 +65,10 @@ void sensors_initialize(void)
     snon_register("Firmware Version", SNON_CLASS_VALUE, NULL);
     snon_add_relationship("Firmware Version", SNON_REL_CHILD_OF, "Device");
     snon_set_value("Firmware Version", FW_VERSION);
+}
 
+void sensors_initialize_displays(void)
+{
     // -------------------------
     // Device Current Sensors
 
@@ -447,7 +450,10 @@ void sensors_initialize(void)
 
     snon_register("L3 Voltage HiHi", SNON_CLASS_VALUE, NULL);
     snon_set_values("L3 Voltage HiHi", "[\"2\"]");
+}
 
+void sensors_initialize_leds(void)
+{
     // Add front panel LED indicator values
     snon_register("=W01", SNON_CLASS_DEVICE, NULL);
     snon_add_relationship("=W01", SNON_REL_CHILD_OF, "Device");

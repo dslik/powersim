@@ -9,4 +9,6 @@
 // ---------------------------------------------------------------------------------
 
 // Utility routines
-void sensors_initialize(void);
+void sensors_initialize_device(void);
+void sensors_initialize_displays(void);
+void sensors_initialize_leds(void);

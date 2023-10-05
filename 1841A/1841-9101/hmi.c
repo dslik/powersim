@@ -19,6 +19,7 @@
 #include "vita40.h"
 #include "asm_hmi.h"
 #include "st7789_lcd.h"
+#include "mcp23017.h"
 #include "snon/snon_utils.h"
 #include "pico-utils/ws2812.h"
 
@@ -544,4 +545,83 @@ bool draw_gen_leds(struct repeating_timer *t)
     busy_wait_us(200);
 
     led_update_counter = led_update_counter + 1;
+}
+
+
+void init_buttons(void)
+{
+    int         ret = PICO_ERROR_NONE;
+
+    // Note: Initializing in order 1, 2, 3 does not work.
+
+    // GPIO Expander #3
+    //----------------------------------
+
+    // Configure interrupts
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IOCON, 0b01000100);
+
+    // Set all GPIO A I/O lines to be outputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IODIRA, 0b00000000);
+    // Set all GPIO A I/O lines to zero
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPIOA, 0b00000000);
+
+    // Set all GPIO B I/O lines to be inputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IODIRB, 0b11111111);
+    // Enable all GPIO B I/O line pull-up Resistors
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPPUB, 0b11111111);
+    // Default value for inputs is all ones
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_DEFVALB, 0b11111111);
+    // Enable INTA for button inputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPINTENB, 0b11111111);
+
+    // Turn on all LEDs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPIOA, 0b11111111);
+
+
+    // GPIO Expander #2
+    //----------------------------------
+
+    // Configure interrupts
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_IOCON, 0b01000100);
+
+    // Set all GPIO A I/O lines to be outputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_IODIRA, 0b00000000);
+    // Set all GPIO A I/O lines to zero
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_GPIOA, 0b00000000);
+
+    // Set all GPIO B I/O lines to be inputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_IODIRB, 0b11111111);
+    // Enable all GPIO B I/O line pull-up Resistors
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_GPPUB, 0b11111111);
+    // Default value for inputs is all ones
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_DEFVALB, 0b11111111);
+    // Enable INTA for button inputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_GPINTENB, 0b11111111);
+    
+    // Turn on all LEDs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_GPIOA, 0b11111111);
+
+
+    // GPIO Expander #1
+    //----------------------------------
+
+    // Configure interrupts
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IOCON, 0b01000100);
+
+    // Set all GPIO A I/O lines to be outputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IODIRA, 0b00000000);
+    // Set all GPIO A I/O lines to zero
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPIOA, 0b00000000);
+
+    // Set all GPIO B I/O lines to be inputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IODIRB, 0b11111111);
+    // Enable all GPIO B I/O line pull-up Resistors
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPPUB, 0b11111111);
+    // Default value for inputs is all ones
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_DEFVALB, 0b11111111);
+    // Enable INTA for button inputs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPINTENB, 0b11111111);
+    
+    // Turn on all LEDs
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPIOA, 0b11111111);
 }

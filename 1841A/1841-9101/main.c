@@ -95,6 +95,31 @@ void hmi_main(void)
 }
 
 
+// Interrupt Service Routine
+void button_isr(uint gpio, uint32_t events)
+{
+    char        snprintf_buffer[SNPRINTF_BUFFER_SIZE];
+uint8_t value1 = 0;
+uint8_t value2 = 0;
+uint8_t value3 = 0;
+
+uint8_t int_value1 = 0;
+uint8_t int_value2 = 0;
+
+int_value1 = gpio_get(I2C_IRQ_PIN);
+mcp23017_read_register(i2c1, I2C_ADDR_1, REG_GPIOB, &value1);
+mcp23017_read_register(i2c1, I2C_ADDR_2, REG_GPIOB, &value2);
+mcp23017_read_register(i2c1, I2C_ADDR_3, REG_GPIOB, &value3);
+    gpio_pull_up(I2C_IRQ_PIN);
+
+int_value2 = gpio_get(I2C_IRQ_PIN);
+
+snprintf(snprintf_buffer, SNPRINTF_BUFFER_SIZE, "\r\nISR: 1:%u 2:%u 3:%u / b: %u a: %u", value1, value2, value3, int_value1, int_value2);
+uart_puts(uart1, snprintf_buffer); 
+
+}
+
+
 int main() {
     struct  repeating_timer ledTimer;
     datetime_t  t;
@@ -147,16 +172,15 @@ int main() {
 
     // ===========================================================================================
     printf("Initializing SNON entities (%lu)\n", get_free_ram_2());
-    sensors_initialize();
+    sensors_initialize_device();
+    sensors_initialize_displays();
     printf("SNON entities initialized. (%lu)\n", get_free_ram_2());
 
     // ===========================================================================================
     printf("Front Panel init...\n");
     multicore_launch_core1(&hmi_main);
 
-    add_repeating_timer_ms(100, draw_gen_leds, NULL, &ledTimer);
-
-    printf("LCD initialized...\n");
+    printf("Front Panel initialized...\n");
 
     // ===========================================================================================
     printf("Initializing Serial I/O...\n");
@@ -172,32 +196,15 @@ int main() {
     // ===========================================================================================
     printf("Initializing Buttons...\n");
 
-    // Set all GPIO A I/O lines to be outputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, 0x00, 0b00000000);
-    // Set all GPIO A I/O lines to zero
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, 0x12, 0b00000000);
+    // Set up the ISR
+    gpio_init(I2C_IRQ_PIN);
+    gpio_set_dir(I2C_IRQ_PIN, GPIO_IN);
+    gpio_pull_up(I2C_IRQ_PIN);
+    gpio_set_irq_enabled_with_callback(I2C_IRQ_PIN, GPIO_IRQ_EDGE_FALL, true, &button_isr);
 
-    // Set all GPIO B I/O lines to be inputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, 0x01, 0b11111111);
-    // Enable all GPIO B I/O line pull-up Resistors
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, 0x0D, 0b11111111);
+    init_buttons();
 
-    // Turn on all LEDs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_2, 0x12, 0b11111111);
-
-    // Set all GPIO A I/O lines to be outputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, 0x00, 0b00000000);
-    // Set all GPIO A I/O lines to zero
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, 0x12, 0b00000000);
-
-    // Set all GPIO B I/O lines to be inputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, 0x01, 0b11111111);
-    // Enable all GPIO B I/O line pull-up Resistors
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, 0x0D, 0b11111111);
-
-    // Turn on all LEDs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, 0x12, 0b11111111);
-
+    // ===========================================================================================
 
     printf("Ready for commands\n");
     while (true)
@@ -568,6 +575,6 @@ int main() {
             refresh_needed = false;
         }
 
-        //sleep_ms(1);
+        //sleep_ms(100);
     }
 }

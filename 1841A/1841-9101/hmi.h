@@ -13,3 +13,4 @@ void init_gen_screens(void);
 void update_gen_screens(void);
 bool draw_gen_leds(struct repeating_timer *t);
 
+void init_buttons(void);
