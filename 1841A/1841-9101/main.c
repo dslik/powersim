@@ -33,9 +33,7 @@
 #include "snon/sha1.h"
 #include "snon/snon_utils.h"
 #include "mem_utils.h"
-
 #include "asm_hmi.h"
-#include "vita40.h"
 
 // Local Constants
 #define SNPRINTF_BUFFER_SIZE    80

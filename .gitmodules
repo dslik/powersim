@@ -10,3 +10,6 @@
 [submodule "1841A/1841-9101/snon"]
 	path = 1841A/1841-9101/snon
 	url = http://github.com/dslik/snon-utils
+[submodule "1841A/1841-9101/vita40"]
+	path = 1841A/1841-9101/vita40
+	url = https://github.com/dslik/vita40-utils

@@ -16,11 +16,11 @@
 #include "hmi.h"
 #include "fonts.h"
 #include "pins.h"
-#include "vita40.h"
 #include "asm_hmi.h"
 #include "st7789_lcd.h"
 #include "mcp23017.h"
 #include "snon/snon_utils.h"
+#include "vita40/vita40.h"
 #include "pico-utils/ws2812.h"
 
 // Defines
@@ -35,7 +35,6 @@ void draw_gen_top_init(void);
 void draw_gen_top(uint8_t update_region);
 void draw_gen_bottom_init(void);
 void draw_gen_bottom(uint8_t update_region);
-uint32_t vita40_to_urgb(char* vita40_state, uint32_t counter);
 
 // Global variables
 uint32_t        led_update_counter = 0;
@@ -305,84 +304,6 @@ void draw_gen_bottom(uint8_t update_region)
 }
 
 
-uint32_t vita40_to_urgb(char* vita40_state, uint32_t counter)
-{
-    if(strcmp(vita40_state, "vita40_off") == 0)
-    {
-        return(urgb_u32(vita40_off));
-    }
-
-    if(strcmp(vita40_state, "vita40_red_steady") == 0)
-    {
-        return(urgb_u32(vita40_red_steady));
-    }
-
-    if(strcmp(vita40_state, "vita40_white_fast") == 0)
-    {
-        if(counter % 2 == 0)
-        {
-            return(urgb_u32(vita40_white_fast));
-        }
-        else
-        {
-            return(urgb_u32(vita40_off));
-        }
-    }
-
-    if(strcmp(vita40_state, "vita40_blue_steady") == 0)
-    {
-        return(urgb_u32(vita40_blue_steady));
-    }
-
-    if(strcmp(vita40_state, "vita40_amber_slow") == 0)
-    {
-        if((counter / 5) % 2 == 0)
-        {
-            return(urgb_u32(vita40_amber_slow));
-        }
-        else
-        {
-            return(urgb_u32(vita40_off));
-        }
-    }
-
-    if(strcmp(vita40_state, "vita40_amber_steady") == 0)
-    {
-        return(urgb_u32(vita40_amber_steady));
-    }
-
-    if(strcmp(vita40_state, "vita40_green_standby") == 0)
-    {
-        if(counter % 10 == 0)
-        {
-            return(urgb_u32(vita40_green_standby));
-        }
-        else
-        {
-            return(urgb_u32(vita40_off));
-        }
-    }
-
-    if(strcmp(vita40_state, "vita40_green_steady") == 0)
-    {
-        return(urgb_u32(vita40_green_steady));
-    }
-
-    if(strcmp(vita40_state, "vita40_green_slow") == 0)
-    {
-        if((counter / 5) % 2 == 0)
-        {
-            return(urgb_u32(vita40_green_slow));
-        }
-        else
-        {
-            return(urgb_u32(vita40_off));
-        }
-    }
-
-    return(urgb_u32(vita40_off));
-}
-
 bool draw_gen_leds(struct repeating_timer *t)
 {
     uint32_t    led_values[FRONT_PANEL_LED_COUNT];
@@ -552,31 +473,31 @@ void init_buttons(void)
 {
     int         ret = PICO_ERROR_NONE;
 
-    // Note: Initializing in order 1, 2, 3 does not work.
+    // Note: Initializing in order 1, 2, 3 breaks IRQ handling
+    // Note: Initializing in order 3, 2, 1 breaks expander 3 output
 
-    // GPIO Expander #3
+    // GPIO Expander #1
     //----------------------------------
 
     // Configure interrupts
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IOCON, 0b01000100);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IOCON, 0b01000100);
 
     // Set all GPIO A I/O lines to be outputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IODIRA, 0b00000000);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IODIRA, 0b00000000);
     // Set all GPIO A I/O lines to zero
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPIOA, 0b00000000);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPIOA, 0b00000000);
 
     // Set all GPIO B I/O lines to be inputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IODIRB, 0b11111111);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IODIRB, 0b11111111);
     // Enable all GPIO B I/O line pull-up Resistors
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPPUB, 0b11111111);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPPUB, 0b11111111);
     // Default value for inputs is all ones
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_DEFVALB, 0b11111111);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_DEFVALB, 0b11111111);
     // Enable INTA for button inputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPINTENB, 0b11111111);
-
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPINTENB, 0b11111111);
+    
     // Turn on all LEDs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPIOA, 0b11111111);
-
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPIOA, 0b11111111);
 
     // GPIO Expander #2
     //----------------------------------
@@ -601,27 +522,27 @@ void init_buttons(void)
     // Turn on all LEDs
     ret = mcp23017_write_register(i2c1, I2C_ADDR_2, REG_GPIOA, 0b11111111);
 
-
-    // GPIO Expander #1
+    // GPIO Expander #3
     //----------------------------------
 
     // Configure interrupts
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IOCON, 0b01000100);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IOCON, 0b01000100);
 
     // Set all GPIO A I/O lines to be outputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IODIRA, 0b00000000);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IODIRA, 0b00000000);
     // Set all GPIO A I/O lines to zero
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPIOA, 0b00000000);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPIOA, 0b00000000);
 
     // Set all GPIO B I/O lines to be inputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_IODIRB, 0b11111111);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_IODIRB, 0b11111111);
     // Enable all GPIO B I/O line pull-up Resistors
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPPUB, 0b11111111);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPPUB, 0b11111111);
     // Default value for inputs is all ones
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_DEFVALB, 0b11111111);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_DEFVALB, 0b11111111);
     // Enable INTA for button inputs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPINTENB, 0b11111111);
-    
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPINTENB, 0b11111111);
+
     // Turn on all LEDs
-    ret = mcp23017_write_register(i2c1, I2C_ADDR_1, REG_GPIOA, 0b11111111);
+    ret = mcp23017_write_register(i2c1, I2C_ADDR_3, REG_GPIOA, 0b11111111);
+
 }

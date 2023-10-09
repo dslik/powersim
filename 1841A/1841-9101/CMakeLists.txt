@@ -25,6 +25,7 @@ add_executable(${PROJECT_NAME}
     mcp23017.c
     asm_hmi.c
     mem_utils.c
+    vita40/vita40.c
     pico-utils/ws2812.c
     snon/sha1.c
     snon/snon_utils.c

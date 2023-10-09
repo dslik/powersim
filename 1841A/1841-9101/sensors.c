@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------------
 #include "build.h"
 #include "asm_hmi.h"
-#include "vita40.h"
+#include "vita40/vita40.h"
 #include "snon/snon_utils.h"
 
 #include "mem_utils.h"
