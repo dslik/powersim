@@ -4,6 +4,14 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-10-08
+
+Here is the first fully assembled front panel:
+
+![image](https://github.com/dslik/powersim/assets/5757591/2cc6692f-43ea-4c92-9a2b-d384433c7197)
+
+All of the front panel modules are up and running, with the next step being finalizing and coding up the remaining HMI screens for the generator excitation, generator protection and transformer protection subsystems.
+
 ## 2023-10-02
 
 The updated rack front panel for the generator synchronize indicator/switch came in, and everything fits. Looks pretty nice in the rack:
@@ -44,7 +52,7 @@ This shows current bus voltage, normal voltage range, and alarm indications.
 Disconnector voltage and current:
 
 ![image](https://github.com/dslik/powersim/assets/5757591/6509dfd3-c330-4180-ac09-c29f5b39e826)
-2
+
 Here's what it looks like on an actual LCD:
 
 ![image](https://github.com/dslik/powersim/assets/5757591/70d291aa-cf89-4099-94d4-4e3d373cca7d)
