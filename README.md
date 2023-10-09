@@ -4,6 +4,10 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-10-09
+
+Now that I'm getting to the point where I'm implementing more complex system topologies, I am finding that I need a lightweight specification language that acts as an equivalent to the IEC 61850 SCL System Specification Description. There's no way that I would be able to get away with parsing multi-MB XML on my little pico microcontroller, but that certainly can happen on a coordination server that translates the SCL into a simpler configuration language that can then be pushed down to each edge device via SNON.
+
 ## 2023-10-08
 
 Here is the first fully assembled front panel:
