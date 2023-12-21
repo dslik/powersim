@@ -4,6 +4,20 @@ Hardware and software for simulating various components of a modern power genera
 
 _Feel free to ask questions by opening an issue!_
 
+## 2023-12-21
+
+The long screws came in, and I was able to finish up the second prototype of the annunciator panel. I switched over to using longer rectangular openings instead of square ones, which allow the use of larger text that is more visible from a distance.
+
+![image](https://github.com/dslik/powersim/assets/5757591/a9fd9343-61a8-4f9d-b508-430c4b3866f5)
+
+Here is an illustration of how the spacer PCBs are assembled:
+
+![image](https://github.com/dslik/powersim/assets/5757591/d12aef20-455c-44ed-96ba-56b48758feaf)
+
+There still is a slight darker band down the middle of each illuminated rectangle, so I would either need to use a few more spacer PCBs, or update the LED PCB to add more LEDs. I would also like to switch over to using RGBW LEDs instead of RGB LEDs, but I would need to find a good part for that that wouldn't significantly increase the BoM cost.
+
+Next steps are to make some final tweaks to the boards, and finish up the software.
+
 ## 2023-10-09
 
 Now that I'm getting to the point where I'm implementing more complex system topologies, I am finding that I need a lightweight specification language that acts as an equivalent to the IEC 61850 SCL System Specification Description. There's no way that I would be able to get away with parsing multi-MB XML on my little pico microcontroller, but that certainly can happen on a coordination server that translates the SCL into a simpler configuration language that can then be pushed down to each edge device via SNON.
