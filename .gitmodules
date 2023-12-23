@@ -19,3 +19,6 @@
 [submodule "1870A/1870-9101/snon"]
 	path = 1870A/1870-9101/snon
 	url = https://github.com/dslik/snon-utils
+[submodule "1870A/1870-9101/pico-utils"]
+	path = 1870A/1870-9101/pico-utils
+	url = https://github.com/dslik/pico-utils
