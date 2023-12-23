@@ -16,3 +16,6 @@
 [submodule "1870A/1870-9101/vita40"]
 	path = 1870A/1870-9101/vita40
 	url = https://github.com/dslik/vita40-utils
+[submodule "1870A/1870-9101/snon"]
+	path = 1870A/1870-9101/snon
+	url = https://github.com/dslik/snon-utils
